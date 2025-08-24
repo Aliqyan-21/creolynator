@@ -16,7 +16,9 @@ void Lexer::tokenize() {
       read_uli();
     } else if (peek() == '#') {
       read_oli();
-    }else {
+    } else if (peek() == '-') {
+      read_horizonalrule();
+    } else {
       advance();
     }
   }
@@ -47,6 +49,9 @@ std::string Lexer::token_to_string(BlockTokenType type) {
     break;
   case BlockTokenType::OLISTITEM:
     return "OLISTITEM";
+    break;
+  case BlockTokenType::HORIZONTALRULE:
+    return "HORIZONTALRULE";
     break;
   case BlockTokenType::ENDOF:
     return "ENDOF";
@@ -123,6 +128,15 @@ void Lexer::read_oli() {
     advance();
   }
   tokens.push_back({BlockTokenType::OLISTITEM, loc, trim(text), level});
+  tokens.push_back({BlockTokenType::NEWLINE, loc});
+  advance(); // '\n'
+}
+
+void Lexer::read_horizonalrule() {
+  for (int i{0}; i < 4; ++i) {
+    advance();
+  }
+  tokens.push_back({BlockTokenType::HORIZONTALRULE, loc});
   tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }

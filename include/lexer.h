@@ -11,6 +11,7 @@ enum class BlockTokenType {
   NEWLINE,
   ULISTITEM, // unordered
   OLISTITEM, // ordered
+  HORIZONTALRULE,
   ENDOF,
 };
 
@@ -38,9 +39,10 @@ private:
   std::string token_to_string(BlockTokenType type);
 
   /*=== Reading Functions ===*/
-  void read_heading(); // heaading with different levels
-  void read_uli();     // unordered list item
-  void read_oli();     // ordered list item
+  void read_heading();       // heaading with different levels
+  void read_uli();           // unordered list item
+  void read_oli();           // ordered list item
+  void read_horizonalrule(); // horizontal rule
 
   /*=== Helper Functions ===*/
   inline bool end();
