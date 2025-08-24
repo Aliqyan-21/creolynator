@@ -12,7 +12,11 @@ void Lexer::tokenize() {
   while (!end()) {
     if (peek() == '=') {
       read_heading();
-    } else {
+    } else if (peek() == '*') {
+      read_uli();
+    } else if (peek() == '#') {
+      read_oli();
+    }else {
       advance();
     }
   }
@@ -37,6 +41,12 @@ std::string Lexer::token_to_string(BlockTokenType type) {
     break;
   case BlockTokenType::NEWLINE:
     return "NEWLINE";
+    break;
+  case BlockTokenType::ULISTITEM:
+    return "ULISTITEM";
+    break;
+  case BlockTokenType::OLISTITEM:
+    return "OLISTITEM";
     break;
   case BlockTokenType::ENDOF:
     return "ENDOF";
@@ -79,6 +89,40 @@ void Lexer::read_heading() {
     }
   }
   tokens.push_back({BlockTokenType::HEADING, loc, trim(text), level});
+  tokens.push_back({BlockTokenType::NEWLINE, loc});
+  advance(); // '\n'
+}
+
+void Lexer::read_uli() {
+  int level{0};
+  while (peek() == '*') {
+    level++;
+    advance();
+  }
+
+  std::string text;
+  while (!end() && peek() != '\n') {
+    text += peek();
+    advance();
+  }
+  tokens.push_back({BlockTokenType::ULISTITEM, loc, trim(text), level});
+  tokens.push_back({BlockTokenType::NEWLINE, loc});
+  advance(); // '\n'
+}
+
+void Lexer::read_oli() {
+  int level{0};
+  while (peek() == '#') {
+    level++;
+    advance();
+  }
+
+  std::string text;
+  while (!end() && peek() != '\n') {
+    text += peek();
+    advance();
+  }
+  tokens.push_back({BlockTokenType::OLISTITEM, loc, trim(text), level});
   tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }

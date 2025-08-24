@@ -9,6 +9,8 @@
 enum class BlockTokenType {
   HEADING,
   NEWLINE,
+  ULISTITEM, // unordered
+  OLISTITEM, // ordered
   ENDOF,
 };
 
@@ -16,7 +18,7 @@ struct Token {
   BlockTokenType type;
   size_t loc;
   std::optional<std::string> text; // raw text
-  std::optional<int> level;        // for heading
+  std::optional<int> level;        // for heading, ul, ol
 };
 
 class Lexer {
@@ -36,7 +38,9 @@ private:
   std::string token_to_string(BlockTokenType type);
 
   /*=== Reading Functions ===*/
-  void read_heading();
+  void read_heading(); // heaading with different levels
+  void read_uli();     // unordered list item
+  void read_oli();     // ordered list item
 
   /*=== Helper Functions ===*/
   inline bool end();
