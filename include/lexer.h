@@ -13,6 +13,7 @@ enum class BlockTokenType {
   OLISTITEM, // ordered
   HORIZONTALRULE,
   PARAGRAPHLINE, // just lines, parser will join
+  VERBATIMBLOCK, // just like a code block
   ENDOF,
 };
 
@@ -45,6 +46,7 @@ private:
   void read_oli();           // ordered list item
   void read_horizonalrule(); // horizontal rule
   void read_paragraphline(); // normal paragraph lines
+  void read_verbatim();      // verbatim block
 
   /*=== Helper Functions ===*/
   inline bool end();

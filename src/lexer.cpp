@@ -20,6 +20,8 @@ void Lexer::tokenize() {
       read_horizonalrule();
     } else if (std::isalnum(peek())) {
       read_paragraphline();
+    } else if (peek() == '{') {
+      read_verbatim();
     } else {
       advance();
     }
@@ -57,6 +59,9 @@ std::string Lexer::token_to_string(BlockTokenType type) {
     break;
   case BlockTokenType::PARAGRAPHLINE:
     return "PARAGRAPHLINE";
+    break;
+  case BlockTokenType::VERBATIMBLOCK:
+    return "VERBATIMBLOCK";
     break;
   case BlockTokenType::ENDOF:
     return "ENDOF";
@@ -152,7 +157,32 @@ void Lexer::read_paragraphline() {
     line += peek();
     advance();
   }
-  tokens.push_back({BlockTokenType::PARAGRAPHLINE, loc, line});
+  tokens.push_back({BlockTokenType::PARAGRAPHLINE, loc, trim(line)});
+  tokens.push_back({BlockTokenType::NEWLINE, loc});
+  advance(); // '\n'
+}
+
+void Lexer::read_verbatim() {
+  size_t _loc = loc;
+  for (int i{0}; i < 3; ++i) {
+    advance(); // {
+  }
+  while (!end() && !is_newline()) {
+    advance(); // skip for now
+  }
+  advance(); //\n
+  std::string text;
+  while (!end() && peek() != '}') {
+    text += peek();
+    advance();
+  }
+  for (int i{0}; i < 3; ++i) {
+    advance(); // }
+  }
+  tokens.push_back({BlockTokenType::VERBATIMBLOCK, _loc, text});
+  while (!end() && !is_newline()) {
+    advance(); // skip for now
+  }
   tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }
