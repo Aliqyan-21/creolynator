@@ -15,12 +15,16 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Add source files
 set(SOURCES
     src/utils.cpp
+    src/error.cpp
+    src/lexer.cpp
     src/main.cpp
 )
 
 # Add header files (optional)
 set(HEADERS
     include/utils.h
+    include/error.h
+    include/lexer.h
 )
 
 # Define compile flags

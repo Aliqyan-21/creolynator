@@ -10,11 +10,10 @@ Lexer::Lexer(const std::string &filepath) : pos(0), loc(1) {
 /*=== Publicaly Exposed Functions ===*/
 void Lexer::tokenize() {
   while (!end()) {
-    if (peek() == '=') {
+    if (peek() == '#') {
       read_heading();
-    } else {
-      advance();
     }
+    advance();
   }
   tokens.push_back({BlockTokenType::ENDOF, loc});
 }
@@ -51,34 +50,27 @@ void Lexer::print_tokens() {
   for (const auto &t : tokens) {
     std::cout << "Type: " << token_to_string(t.type) << std::endl;
     std::cout << "Loc: " << t.loc << std::endl;
-    if (t.text.has_value()) {
-      std::cout << "Text: " << t.text.value() << std::endl;
-    }
-    if (t.level.has_value()) {
-      std::cout << "Level: " << t.level.value() << std::endl;
-    }
-    std::cout << "--------------------------------------------" << std::endl;
+    t.text.has_value() ? std::cout << "Text: " << t.text.value() << std::endl : "No text";
+    std::cout << "Level: " << t.level << std::endl;
   }
 }
 
 /*=== Reading Functions ===*/
 void Lexer::read_heading() {
   int level{0};
-  while (peek() == '=') {
+  while (peek() == '#') {
     level++;
     advance();
   }
 
   std::string text;
   while (!end() && peek() != '\n') {
-    if (peek() == '=') {
-      advance();
-    } else {
+    if (!is_whites()) {
       text += peek();
-      advance();
     }
+    advance();
   }
-  tokens.push_back({BlockTokenType::HEADING, loc, trim(text), level});
+  tokens.push_back({BlockTokenType::HEADING, loc, text, level});
   tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }

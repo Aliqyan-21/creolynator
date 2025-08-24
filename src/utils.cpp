@@ -17,20 +17,6 @@ std::string read_creole_file(const std::string &filepath) {
   return content;
 }
 
-std::vector<std::string> chop_by_lines(const std::string &data) {
-  std::vector<std::string> data_lines;
-  std::string line;
-  for (const char &c : data) {
-    if (c == '\n') {
-      data_lines.push_back(line);
-      line.clear();
-    } else {
-      line += c;
-    }
-  }
-  return data_lines;
-}
-
 Args parse_args(int argc, char *argv[]) {
   if (argc < 2) {
     usage(argv[0]);
@@ -40,3 +26,21 @@ Args parse_args(int argc, char *argv[]) {
   args.filename = argv[1];
   return args;
 }
+
+std::string ltrim(const std::string &str) {
+  size_t i = 0;
+  while (i < str.size() && std::isspace(str[i])) {
+    i++;
+  }
+  return str.substr(i);
+}
+
+std::string rtrim(const std::string &str) {
+  size_t j = str.size();
+  while (j > str.size() && !std::isspace(str[j - 1])) {
+    j--;
+  }
+  return str.substr(0, j);
+}
+
+std::string trim(const std::string &str) { return ltrim(rtrim(str)); }
