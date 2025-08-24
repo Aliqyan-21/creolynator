@@ -85,7 +85,7 @@ void Lexer::read_heading() {
   }
 
   std::string text;
-  while (!end() && peek() != '\n') {
+  while (!end() && !is_newline()) {
     if (peek() == '=') {
       advance();
     } else {
@@ -106,7 +106,7 @@ void Lexer::read_uli() {
   }
 
   std::string text;
-  while (!end() && peek() != '\n') {
+  while (!end() && !is_newline()) {
     text += peek();
     advance();
   }
@@ -123,7 +123,7 @@ void Lexer::read_oli() {
   }
 
   std::string text;
-  while (!end() && peek() != '\n') {
+  while (!end() && is_newline()) {
     text += peek();
     advance();
   }
