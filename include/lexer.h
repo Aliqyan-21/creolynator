@@ -47,6 +47,7 @@ private:
   void read_horizonalrule(); // horizontal rule
   void read_paragraphline(); // normal paragraph lines
   void read_verbatim();      // verbatim block
+  void read_blankline();
 
   /*=== Helper Functions ===*/
   inline bool end();

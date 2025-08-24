@@ -22,6 +22,8 @@ void Lexer::tokenize() {
       read_paragraphline();
     } else if (peek() == '{') {
       read_verbatim();
+    } else if (std::isspace(peek())) {
+      read_blankline();
     } else {
       advance();
     }
@@ -183,6 +185,15 @@ void Lexer::read_verbatim() {
   while (!end() && !is_newline()) {
     advance(); // skip for now
   }
+  tokens.push_back({BlockTokenType::NEWLINE, loc});
+  advance(); // '\n'
+}
+
+void Lexer::read_blankline() {
+  while (!end() && !is_newline()) {
+    advance();
+  }
+  // let's just treat blankline as newline only
   tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }
