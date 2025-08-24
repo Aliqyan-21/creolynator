@@ -18,6 +18,8 @@ void Lexer::tokenize() {
       read_oli();
     } else if (peek() == '-') {
       read_horizonalrule();
+    } else if (std::isalnum(peek())) {
+      read_paragraphline();
     } else {
       advance();
     }
@@ -52,6 +54,9 @@ std::string Lexer::token_to_string(BlockTokenType type) {
     break;
   case BlockTokenType::HORIZONTALRULE:
     return "HORIZONTALRULE";
+    break;
+  case BlockTokenType::PARAGRAPHLINE:
+    return "PARAGRAPHLINE";
     break;
   case BlockTokenType::ENDOF:
     return "ENDOF";
@@ -137,6 +142,17 @@ void Lexer::read_horizonalrule() {
     advance();
   }
   tokens.push_back({BlockTokenType::HORIZONTALRULE, loc});
+  tokens.push_back({BlockTokenType::NEWLINE, loc});
+  advance(); // '\n'
+}
+
+void Lexer::read_paragraphline() {
+  std::string line;
+  while (!end() && !is_newline()) {
+    line += peek();
+    advance();
+  }
+  tokens.push_back({BlockTokenType::PARAGRAPHLINE, loc, line});
   tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }

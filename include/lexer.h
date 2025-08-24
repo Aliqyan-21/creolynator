@@ -12,6 +12,7 @@ enum class BlockTokenType {
   ULISTITEM, // unordered
   OLISTITEM, // ordered
   HORIZONTALRULE,
+  PARAGRAPHLINE, // just lines, parser will join
   ENDOF,
 };
 
@@ -43,6 +44,7 @@ private:
   void read_uli();           // unordered list item
   void read_oli();           // ordered list item
   void read_horizonalrule(); // horizontal rule
+  void read_paragraphline(); // normal paragraph lines
 
   /*=== Helper Functions ===*/
   inline bool end();
