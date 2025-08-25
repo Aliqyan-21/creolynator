@@ -1,5 +1,6 @@
 #include "b_lexer.h"
 #include "error.h"
+#include "i_lexer.h"
 #include "utils.h"
 #include <iostream>
 
@@ -29,6 +30,16 @@ void B_Lexer::b_tokenize() {
     }
   }
   tokens.push_back({BlockTokenType::ENDOF, loc});
+  f_tokenize();
+}
+
+void B_Lexer::f_tokenize() {
+  for (const auto &token : tokens) {
+    if (token.text.has_value()) {
+      I_Lexer lex(token.text.value(), token.loc);
+      lex.i_tokenize();
+    }
+  }
 }
 
 std::vector<B_Token> B_Lexer::get_tokens() {

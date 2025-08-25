@@ -37,7 +37,7 @@ std::string ltrim(const std::string &str) {
 
 std::string rtrim(const std::string &str) {
   size_t j = str.size();
-  while (j > str.size() && !std::isspace(str[j - 1])) {
+  while (j > 0 && std::isspace(str[j - 1])) {
     j--;
   }
   return str.substr(0, j);

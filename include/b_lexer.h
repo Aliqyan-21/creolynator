@@ -28,6 +28,7 @@ class B_Lexer {
 public:
   explicit B_Lexer(const std::string &filepath);
   void b_tokenize(); // block tokenizer
+  void f_tokenize(); // after block and inline -> this will do final tokenize
   void print_tokens();
   std::vector<B_Token> get_tokens();
 
