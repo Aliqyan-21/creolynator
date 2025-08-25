@@ -1,5 +1,5 @@
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef B_LEXER_H
+#define B_LEXER_H
 
 #include <optional>
 #include <stdint.h>
@@ -17,22 +17,22 @@ enum class BlockTokenType {
   ENDOF,
 };
 
-struct Token {
+struct B_Token {
   BlockTokenType type;
   size_t loc;
   std::optional<std::string> text; // raw text
   std::optional<int> level;        // for heading, ul, ol
 };
 
-class Lexer {
+class B_Lexer {
 public:
-  explicit Lexer(const std::string &filepath);
-  void tokenize();
+  explicit B_Lexer(const std::string &filepath);
+  void b_tokenize(); // block tokenizer
   void print_tokens();
-  std::vector<Token> get_tokens();
+  std::vector<B_Token> get_tokens();
 
 private:
-  std::vector<Token> tokens;
+  std::vector<B_Token> tokens;
   std::string creole_data;
   size_t pos;
   size_t loc;
@@ -57,4 +57,4 @@ private:
   inline bool is_whites();
 };
 
-#endif // !LEXER_H
+#endif // !B_LEXER_H

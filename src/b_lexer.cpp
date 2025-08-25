@@ -1,14 +1,14 @@
-#include "lexer.h"
+#include "b_lexer.h"
 #include "error.h"
 #include "utils.h"
 #include <iostream>
 
-Lexer::Lexer(const std::string &filepath) : pos(0), loc(1) {
+B_Lexer::B_Lexer(const std::string &filepath) : pos(0), loc(1) {
   creole_data = read_creole_file(filepath);
 }
 
 /*=== Publicaly Exposed Functions ===*/
-void Lexer::tokenize() {
+void B_Lexer::b_tokenize() {
   while (!end()) {
     if (peek() == '=') {
       read_heading();
@@ -31,18 +31,19 @@ void Lexer::tokenize() {
   tokens.push_back({BlockTokenType::ENDOF, loc});
 }
 
-std::vector<Token> Lexer::get_tokens() {
+std::vector<B_Token> B_Lexer::get_tokens() {
   if (tokens.empty() || tokens.size() == 1) {
-    throw LexerError("Tried to call get_tokens function without populating the "
-                     "tokens or running lexer on an empty file",
-                     0);
+    throw B_LexerError(
+        "Tried to call get_tokens function without populating the "
+        "tokens or running lexer on an empty file",
+        0);
     return {};
   }
   return tokens;
 }
 
 /*=== Printing Functions ===*/
-std::string Lexer::token_to_string(BlockTokenType type) {
+std::string B_Lexer::token_to_string(BlockTokenType type) {
   switch (type) {
   case BlockTokenType::HEADING:
     return "HEADING";
@@ -74,7 +75,7 @@ std::string Lexer::token_to_string(BlockTokenType type) {
   }
 }
 
-void Lexer::print_tokens() {
+void B_Lexer::print_tokens() {
   for (const auto &t : tokens) {
     std::cout << "Type: " << token_to_string(t.type) << std::endl;
     std::cout << "Loc: " << t.loc << std::endl;
@@ -89,7 +90,7 @@ void Lexer::print_tokens() {
 }
 
 /*=== Reading Functions ===*/
-void Lexer::read_heading() {
+void B_Lexer::read_heading() {
   int level{0};
   while (peek() == '=') {
     level++;
@@ -110,7 +111,7 @@ void Lexer::read_heading() {
   advance(); // '\n'
 }
 
-void Lexer::read_uli() {
+void B_Lexer::read_uli() {
   int level{0};
   while (peek() == '*') {
     level++;
@@ -127,7 +128,7 @@ void Lexer::read_uli() {
   advance(); // '\n'
 }
 
-void Lexer::read_oli() {
+void B_Lexer::read_oli() {
   int level{0};
   while (peek() == '#') {
     level++;
@@ -144,7 +145,7 @@ void Lexer::read_oli() {
   advance(); // '\n'
 }
 
-void Lexer::read_horizonalrule() {
+void B_Lexer::read_horizonalrule() {
   for (int i{0}; i < 4; ++i) {
     advance();
   }
@@ -153,7 +154,7 @@ void Lexer::read_horizonalrule() {
   advance(); // '\n'
 }
 
-void Lexer::read_paragraphline() {
+void B_Lexer::read_paragraphline() {
   std::string line;
   while (!end() && !is_newline()) {
     line += peek();
@@ -164,7 +165,7 @@ void Lexer::read_paragraphline() {
   advance(); // '\n'
 }
 
-void Lexer::read_verbatim() {
+void B_Lexer::read_verbatim() {
   size_t _loc = loc;
   for (int i{0}; i < 3; ++i) {
     advance(); // {
@@ -189,7 +190,7 @@ void Lexer::read_verbatim() {
   advance(); // '\n'
 }
 
-void Lexer::read_blankline() {
+void B_Lexer::read_blankline() {
   while (!end() && !is_newline()) {
     advance();
   }
@@ -199,26 +200,28 @@ void Lexer::read_blankline() {
 }
 
 /*=== Helper Functions ===*/
-inline bool Lexer::end() { return pos >= creole_data.size(); }
+inline bool B_Lexer::end() { return pos >= creole_data.size(); }
 
-void Lexer::advance() {
+void B_Lexer::advance() {
   if (!end()) {
     if (peek() == '\n') {
       loc++;
     }
     pos++;
+  } else {
+    throw I_LexerError("Unexpected end of tokens while advancing", loc);
   }
 }
 
-char Lexer::peek() {
+char B_Lexer::peek() {
   if (!end()) {
     return creole_data[pos];
   }
-  throw LexerError("Unexpected end of tokens", loc);
+  throw B_LexerError("Unexpected end of tokens", loc);
 }
 
-inline bool Lexer::is_newline() { return peek() == '\n'; }
+inline bool B_Lexer::is_newline() { return peek() == '\n'; }
 
-inline bool Lexer::is_whites() {
+inline bool B_Lexer::is_whites() {
   return (peek() != '\n' && std::isspace(peek()));
 }

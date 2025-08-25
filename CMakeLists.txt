@@ -16,7 +16,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(SOURCES
     src/utils.cpp
     src/error.cpp
-    src/lexer.cpp
+    src/b_lexer.cpp
+    src/i_lexer.cpp
     src/main.cpp
 )
 
@@ -24,7 +25,8 @@ set(SOURCES
 set(HEADERS
     include/utils.h
     include/error.h
-    include/lexer.h
+    include/b_lexer.h
+    include/i_lexer.h
 )
 
 # Define compile flags
