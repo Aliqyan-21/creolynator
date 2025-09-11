@@ -2,7 +2,6 @@
 #define B_LEXER_H
 
 #include <optional>
-#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -12,7 +11,7 @@ enum class BlockTokenType {
   ULISTITEM, // unordered
   OLISTITEM, // ordered
   HORIZONTALRULE,
-  PARAGRAPHLINE, // just lines, parser will join
+  PARAGRAPH,
   VERBATIMBLOCK, // just like a code block
   ENDOF,
 };
@@ -45,7 +44,7 @@ private:
   void read_uli();           // unordered list item
   void read_oli();           // ordered list item
   void read_horizonalrule(); // horizontal rule
-  void read_paragraphline(); // normal paragraph lines
+  void read_paragraph(); // normal paragraph lines
   void read_verbatim();      // verbatim block
   void read_blankline();
 

@@ -19,7 +19,7 @@ void BLexer::b_tokenize() {
     } else if (peek() == '-') {
       read_horizonalrule();
     } else if (std::isalnum(peek())) {
-      read_paragraphline();
+      read_paragraph();
     } else if (peek() == '{') {
       read_verbatim();
     } else if (std::isspace(peek())) {
@@ -60,8 +60,8 @@ std::string BLexer::token_to_string(BlockTokenType type) {
   case BlockTokenType::HORIZONTALRULE:
     return "HORIZONTALRULE";
     break;
-  case BlockTokenType::PARAGRAPHLINE:
-    return "PARAGRAPHLINE";
+  case BlockTokenType::PARAGRAPH:
+    return "PARAGRAPH";
     break;
   case BlockTokenType::VERBATIMBLOCK:
     return "VERBATIMBLOCK";
@@ -154,15 +154,26 @@ void BLexer::read_horizonalrule() {
   advance(); // '\n'
 }
 
-void BLexer::read_paragraphline() {
+void BLexer::read_paragraph() {
   std::string line;
-  while (!end() && !is_newline()) {
-    line += peek();
-    advance();
+  size_t start_loc = loc;
+  while (!end()) {
+    if (!std::isalnum(peek())) {
+      break;
+    }
+
+    while (!end() && !is_newline()) {
+      line += peek();
+      advance();
+    }
+
+    if (is_newline()) {
+      advance();
+    }
   }
-  tokens.push_back({BlockTokenType::PARAGRAPHLINE, loc, trim(line)});
+
+  tokens.push_back({BlockTokenType::PARAGRAPH, start_loc, trim(line)});
   tokens.push_back({BlockTokenType::NEWLINE, loc});
-  advance(); // '\n'
 }
 
 void BLexer::read_verbatim() {
