@@ -19,6 +19,7 @@ void BLexer::b_tokenize() {
     } else if (peek() == '-') {
       read_horizonalrule();
     } else if (std::isalnum(peek())) {
+      /* note: so for now u can't start a paragraph with bold/italic */
       read_paragraph();
     } else if (peek() == '{') {
       read_verbatim();
@@ -107,7 +108,6 @@ void BLexer::read_heading() {
     }
   }
   tokens.push_back({BlockTokenType::HEADING, loc, trim(text), level});
-  tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }
 
@@ -124,7 +124,6 @@ void BLexer::read_uli() {
     advance();
   }
   tokens.push_back({BlockTokenType::ULISTITEM, loc, trim(text), level});
-  tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }
 
@@ -136,12 +135,11 @@ void BLexer::read_oli() {
   }
 
   std::string text;
-  while (!end() && is_newline()) {
+  while (!end() && !is_newline()) {
     text += peek();
     advance();
   }
   tokens.push_back({BlockTokenType::OLISTITEM, loc, trim(text), level});
-  tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }
 
@@ -150,7 +148,6 @@ void BLexer::read_horizonalrule() {
     advance();
   }
   tokens.push_back({BlockTokenType::HORIZONTALRULE, loc});
-  tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }
 
@@ -170,10 +167,10 @@ void BLexer::read_paragraph() {
     if (is_newline()) {
       advance();
     }
+    line+='\n';
   }
 
   tokens.push_back({BlockTokenType::PARAGRAPH, start_loc, trim(line)});
-  tokens.push_back({BlockTokenType::NEWLINE, loc});
 }
 
 void BLexer::read_verbatim() {
@@ -197,7 +194,6 @@ void BLexer::read_verbatim() {
   while (!end() && !is_newline()) {
     advance(); // skip for now
   }
-  tokens.push_back({BlockTokenType::NEWLINE, loc});
   advance(); // '\n'
 }
 
@@ -227,6 +223,13 @@ void BLexer::advance() {
 char BLexer::peek() {
   if (!end()) {
     return creole_data[pos];
+  }
+  throw B_LexerError("Unexpected end of tokens", loc);
+}
+
+char BLexer::lookahead() {
+  if (!end() && pos + 1 < creole_data.size()) {
+    return creole_data[pos + 1];
   }
   throw B_LexerError("Unexpected end of tokens", loc);
 }

@@ -52,6 +52,7 @@ private:
   inline bool end();
   void advance();
   char peek();
+  char lookahead();
   inline bool is_newline();
   inline bool is_whites();
 };
