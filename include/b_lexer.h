@@ -13,6 +13,8 @@ enum class BlockTokenType {
   HORIZONTALRULE,
   PARAGRAPH,
   VERBATIMBLOCK, // just like a code block
+  IMAGE,         // rule: image is block token only
+  // todo: support tables in future
   ENDOF,
 };
 
@@ -44,17 +46,19 @@ private:
   void read_uli();           // unordered list item
   void read_oli();           // ordered list item
   void read_horizonalrule(); // horizontal rule
-  void read_paragraph(); // normal paragraph lines
+  void read_paragraph();     // normal paragraph lines
   void read_verbatim();      // verbatim block
   void read_blankline();
+  void read_image(); // image with text (link(url) and alt text)
 
   /*=== Helper Functions ===*/
   inline bool end();
-  void advance();
+  void advance(size_t offset = 1);
   char peek();
-  char lookahead();
+  char lookahead(size_t offset = 1);
   inline bool is_newline();
   inline bool is_whites();
+  inline bool is_special();
 };
 
 #endif // !B_LEXER_H

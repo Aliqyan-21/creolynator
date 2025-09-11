@@ -18,15 +18,14 @@ void BLexer::b_tokenize() {
       read_oli();
     } else if (peek() == '-') {
       read_horizonalrule();
-    } else if (std::isalnum(peek())) {
-      /* note: so for now u can't start a paragraph with bold/italic */
-      read_paragraph();
-    } else if (peek() == '{') {
+    } else if (peek() == '{' && lookahead() == '{' && lookahead(2) == '{') {
       read_verbatim();
+    } else if (peek() == '{' && lookahead() == '{') {
+      read_image();
     } else if (std::isspace(peek())) {
       read_blankline();
     } else {
-      advance();
+      read_paragraph();
     }
   }
   tokens.push_back({BlockTokenType::ENDOF, loc});
@@ -48,31 +47,24 @@ std::string BLexer::token_to_string(BlockTokenType type) {
   switch (type) {
   case BlockTokenType::HEADING:
     return "HEADING";
-    break;
   case BlockTokenType::NEWLINE:
     return "NEWLINE";
-    break;
   case BlockTokenType::ULISTITEM:
     return "ULISTITEM";
-    break;
   case BlockTokenType::OLISTITEM:
     return "OLISTITEM";
-    break;
   case BlockTokenType::HORIZONTALRULE:
     return "HORIZONTALRULE";
-    break;
   case BlockTokenType::PARAGRAPH:
     return "PARAGRAPH";
-    break;
   case BlockTokenType::VERBATIMBLOCK:
     return "VERBATIMBLOCK";
-    break;
+  case BlockTokenType::IMAGE:
+    return "IMAGE";
   case BlockTokenType::ENDOF:
     return "ENDOF";
-    break;
   default:
     return "UNKNOWN";
-    break;
   }
 }
 
@@ -152,49 +144,60 @@ void BLexer::read_horizonalrule() {
 }
 
 void BLexer::read_paragraph() {
-  std::string line;
+  std::string text;
   size_t start_loc = loc;
   while (!end()) {
-    if (!std::isalnum(peek())) {
+    if (is_special()) {
       break;
     }
 
     while (!end() && !is_newline()) {
-      line += peek();
+      text += peek();
       advance();
     }
 
     if (is_newline()) {
       advance();
     }
-    line+='\n';
+    text += '\n';
   }
 
-  tokens.push_back({BlockTokenType::PARAGRAPH, start_loc, trim(line)});
+  tokens.push_back({BlockTokenType::PARAGRAPH, start_loc, trim(text)});
 }
 
 void BLexer::read_verbatim() {
   size_t _loc = loc;
-  for (int i{0}; i < 3; ++i) {
-    advance(); // {
-  }
-  while (!end() && !is_newline()) {
-    advance(); // skip for now
-  }
-  advance(); //\n
+  int depth{1};
+  advance(3); // {
+
   std::string text;
-  while (!end() && peek() != '}') {
-    text += peek();
-    advance();
-  }
-  for (int i{0}; i < 3; ++i) {
-    advance(); // }
+  while (!end() && depth > 0) {
+    if (peek() == '{' && lookahead() == '{' && lookahead(2) == '{') {
+      depth++;
+      text += "{{{";
+      advance(3); // {
+    } else if (peek() == '}' && lookahead() == '}' && lookahead(2) == '}') {
+      depth--;
+      if (depth == 0) {
+        advance(3); // {
+        break;
+      } else {
+        text += "}}}";
+        advance(3); // {
+      }
+    } else {
+      text += peek();
+      advance();
+    }
   }
   tokens.push_back({BlockTokenType::VERBATIMBLOCK, _loc, text});
+
   while (!end() && !is_newline()) {
-    advance(); // skip for now
+    advance();
   }
-  advance(); // '\n'
+  if (!end() && is_newline()) {
+    advance(); // \n
+  }
 }
 
 void BLexer::read_blankline() {
@@ -206,17 +209,34 @@ void BLexer::read_blankline() {
   advance(); // '\n'
 }
 
+void BLexer::read_image() {
+  advance(2); // {
+
+  std::string text;
+  while (!end() && !(peek() == '}' && lookahead() == '}')) {
+    text += peek();
+    advance();
+  }
+  advance(2); // }
+
+  tokens.push_back({BlockTokenType::IMAGE, loc, trim(text)});
+}
+
 /*=== Helper Functions ===*/
 inline bool BLexer::end() { return pos >= creole_data.size(); }
 
-void BLexer::advance() {
-  if (!end()) {
-    if (peek() == '\n') {
-      loc++;
+void BLexer::advance(size_t offset) {
+  if (!end() && pos + offset <= creole_data.size()) {
+    for (size_t i{0}; i < offset; i++) {
+      if (creole_data[pos + i] == '\n') {
+        loc++;
+      }
     }
-    pos++;
+    pos += offset;
   } else {
-    throw B_LexerError("Unexpected end of tokens while advancing", loc);
+    throw B_LexerError("Unexpected end of tokens while advancing" +
+                           std::to_string(offset) + " steps",
+                       loc);
   }
 }
 
@@ -227,9 +247,9 @@ char BLexer::peek() {
   throw B_LexerError("Unexpected end of tokens", loc);
 }
 
-char BLexer::lookahead() {
-  if (!end() && pos + 1 < creole_data.size()) {
-    return creole_data[pos + 1];
+char BLexer::lookahead(size_t offset) {
+  if (!end() && pos + offset < creole_data.size()) {
+    return creole_data[pos + offset];
   }
   throw B_LexerError("Unexpected end of tokens", loc);
 }
@@ -238,4 +258,10 @@ inline bool BLexer::is_newline() { return peek() == '\n'; }
 
 inline bool BLexer::is_whites() {
   return (peek() != '\n' && std::isspace(peek()));
+}
+
+inline bool BLexer::is_special() {
+  return (peek() == '=' || peek() == '*' || peek() == '#' || peek() == '-' ||
+          (peek() == '{' && lookahead() == '{' && lookahead(2) == '{') ||
+          (peek() == '{' && lookahead() == '{') || std::isspace(peek()));
 }
