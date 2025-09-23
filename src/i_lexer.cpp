@@ -45,6 +45,26 @@ std::vector<IToken> ILexer::tokenize(const std::string &input, size_t s_loc) {
   return i_tokens;
 }
 
+/*=== Formatting Location ===*/
+void ILexer::start_formatting() {
+  fmt_pos = pos;
+  fmt_loc = loc;
+  fmt_stack.push_back(loc);
+}
+
+size_t ILexer::get_format_start_loc() {
+  if (fmt_stack.empty()) {
+    return loc;
+  }
+  return fmt_stack.back();
+}
+
+void ILexer::end_formatting() {
+  if (!fmt_stack.empty()) {
+    fmt_stack.pop_back();
+  }
+}
+
 /*=== Printing ===*/
 std::string ILexer::token_type_to_string(InlineTokenType type) {
   switch (type) {
@@ -88,8 +108,14 @@ void ILexer::print_inline_tokens(const std::vector<IToken> &tokens) {
       std::cout << "Children: " << std::endl;
       print_inline_tokens(t.children);
     }
-    std::cout << "----------------------------------------------" << std::endl;
   }
+}
+
+/*=== Handling Children ===*/
+std::vector<IToken> ILexer::recursive_tokenize(const std::string &input,
+                                               size_t s_loc) {
+  ILexer nested_lexer;
+  return nested_lexer.tokenize(input, s_loc);
 }
 
 /*=== Processing Functions ===*/
@@ -98,6 +124,7 @@ void ILexer::handle_normal_state(char c) {
   case '*':
     if (lookahead() == '*') {
       finalize_current_text();
+      start_formatting();
       curr_state = State::IN_BOLD;
       advance();
     } else {
@@ -108,6 +135,7 @@ void ILexer::handle_normal_state(char c) {
   case '/':
     if (lookahead() == '/') {
       finalize_current_text();
+      start_formatting();
       curr_state = State::IN_ITALIC;
       advance();
     } else {
@@ -118,6 +146,7 @@ void ILexer::handle_normal_state(char c) {
   case '[':
     if (lookahead() == '[') {
       finalize_current_text();
+      start_formatting();
       curr_state = State::IN_LINK;
       advance();
     } else {
@@ -129,13 +158,14 @@ void ILexer::handle_normal_state(char c) {
     // if {{ -> image | if {{{ -> verbatim
     if (lookahead() == '{' && lookahead(2) != '{') {
       finalize_current_text();
+      start_formatting();
       curr_state = State::IN_IMAGE;
       advance();
     } else if (lookahead() == '{' && lookahead(2) == '{') {
       finalize_current_text();
+      start_formatting();
       curr_state = State::IN_VERBATIM;
-      advance();
-      advance();
+      advance(2);
     } else {
       curr_text += c;
     }
@@ -164,8 +194,17 @@ void ILexer::handle_normal_state(char c) {
 
 void ILexer::handle_bold_state(char c) {
   if (c == '*' && lookahead() == '*') {
-    add_token(InlineTokenType::BOLD, curr_text);
-    curr_text.clear();
+    if (!curr_text.empty()) {
+      // recursively tokenizing the content for nested formatting
+      auto nested_tokens = recursive_tokenize(curr_text, loc);
+
+      IToken bold_token(InlineTokenType::BOLD, loc);
+      bold_token.children = nested_tokens;
+      i_tokens.push_back(bold_token);
+
+      curr_text.clear();
+    }
+    end_formatting();
     curr_state = State::NORMAL;
     advance();
   } else {
@@ -175,8 +214,16 @@ void ILexer::handle_bold_state(char c) {
 
 void ILexer::handle_italic_state(char c) {
   if (c == '/' && lookahead() == '/') {
-    add_token(InlineTokenType::ITALIC, curr_text);
-    curr_text.clear();
+    if (!curr_text.empty()) {
+      auto nested_tokens = recursive_tokenize(curr_text, loc);
+
+      IToken italic_token(InlineTokenType::ITALIC, loc);
+      italic_token.children = nested_tokens;
+      i_tokens.push_back(italic_token);
+
+      curr_text.clear();
+    }
+    end_formatting();
     curr_state = State::NORMAL;
     advance();
   } else {
@@ -203,8 +250,13 @@ void ILexer::handle_link_state(char c) {
       text = content;
     }
 
-    add_token(InlineTokenType::LINK, text, url);
+    auto nested_tokens = recursive_tokenize(text, loc);
 
+    IToken link_token(InlineTokenType::LINK, loc, std::nullopt, url);
+    link_token.children = nested_tokens;
+    i_tokens.push_back(link_token);
+
+    end_formatting();
     curr_state = State::NORMAL;
     advance();
   } else {
@@ -228,12 +280,15 @@ void ILexer::handle_image_state(char c) {
       alt = content.substr(pipe + 1);
     } else {
       url = content;
-      alt = content;
+      alt = "";
     }
 
-    IToken img_token{InlineTokenType::IMAGE, loc, alt, url};
+    auto nested_tokens = recursive_tokenize(alt, loc);
+
+    IToken img_token(InlineTokenType::IMAGE, loc, alt, url);
     i_tokens.push_back(img_token);
 
+    end_formatting();
     curr_state = State::NORMAL;
     advance();
   } else {
@@ -245,9 +300,9 @@ void ILexer::handle_verbatim_state(char c) {
   if (c == '}' && lookahead() == '}' && lookahead(2) == '}') {
     add_token(InlineTokenType::VERBATIM, curr_text);
     curr_text.clear();
+    end_formatting();
     curr_state = State::NORMAL;
-    advance();
-    advance();
+    advance(2);
   } else {
     curr_text += c;
   }
@@ -267,6 +322,9 @@ void ILexer::heat_the_engine(const std::string &input, size_t s_loc) {
   loc = s_loc;
   curr_state = State::NORMAL;
   inline_data = input;
+  fmt_pos = 0;
+  fmt_loc = s_loc;
+  fmt_stack.clear();
 }
 
 bool ILexer::end() { return pos >= inline_data.size(); }
@@ -285,9 +343,9 @@ char ILexer::lookahead(size_t offset) {
   return inline_data.back();
 }
 
-void ILexer::advance() {
-  if (!end()) {
-    pos++;
+void ILexer::advance(size_t offset) {
+  if (pos + offset <= inline_data.size()) {
+    pos += offset;
   }
 }
 

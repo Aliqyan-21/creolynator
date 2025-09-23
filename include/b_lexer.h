@@ -1,6 +1,7 @@
 #ifndef B_LEXER_H
 #define B_LEXER_H
 
+#include "i_lexer.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -12,7 +13,7 @@ enum class BlockTokenType {
   OLISTITEM, // ordered
   HORIZONTALRULE,
   PARAGRAPH,
-  VERBATIMBLOCK, // just like a code block
+  VERBATIMBLOCK, // just like a code block, preformat
   IMAGE,         // rule: image is block token only
   // todo: support tables in future
   ENDOF,
@@ -23,6 +24,7 @@ struct BToken {
   size_t loc;
   std::optional<std::string> text; // raw text
   std::optional<int> level;        // for heading, ul, ol
+  std::vector<IToken> i_tokens;    // from ILexer
 };
 
 class BLexer {
@@ -31,6 +33,9 @@ public:
   void b_tokenize(); // block tokenizer
   void print_tokens();
   std::vector<BToken> get_tokens();
+
+  /*=== Inline ===*/
+  void process_inline_tokens();
 
 private:
   std::vector<BToken> tokens;

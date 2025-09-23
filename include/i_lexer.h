@@ -22,7 +22,7 @@ struct IToken {
   size_t loc;
   std::optional<std::string> content;
   std::optional<std::string> url; // for links and images
-  std::vector<IToken> children;   // for nested formatting
+  std::vector<IToken> children;   // for nested formatting **//
 };
 
 /*
@@ -54,10 +54,25 @@ private:
   /* State Variables */
   std::vector<IToken> i_tokens;
   std::string curr_text;
+  size_t fmt_pos;                // char position where formatting started
+  size_t fmt_loc;                // line number where formatting started
+  std::vector<size_t> fmt_stack; // for nested formatting
   size_t pos;
   size_t loc;
   State curr_state;
   std::string inline_data;
+
+  /*=== Formatting Location ===*/
+
+  void start_formatting();
+  size_t get_format_start_loc();
+  void end_formatting();
+
+  /*=== Handling Children ===*/
+  /* When we're inside a formatting state (bold, italic, etc.), we should
+  recursively tokenize the content to handle nested formatting. */
+  std::vector<IToken> recursive_tokenize(const std::string &input,
+                                         size_t s_loc);
 
   /*=== Processing Functions ===*/
   void handle_normal_state(char c);
@@ -74,7 +89,7 @@ private:
   bool end();
   char peek();
   char lookahead(size_t offset = 1);
-  void advance();
+  void advance(size_t offset = 1);
 
   void add_token(InlineTokenType type,
                  std::optional<std::string> content = std::nullopt,

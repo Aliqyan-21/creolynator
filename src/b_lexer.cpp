@@ -78,6 +78,10 @@ void BLexer::print_tokens() {
     if (t.level.has_value()) {
       std::cout << "Level: " << t.level.value() << std::endl;
     }
+    if (!t.i_tokens.empty()) {
+      std::cout << "========INLINE TOKENS=====" << std::endl;
+      ILexer::print_inline_tokens(t.i_tokens);
+    }
     std::cout << "--------------------------------------------" << std::endl;
   }
 }
@@ -220,6 +224,18 @@ void BLexer::read_image() {
   advance(2); // }
 
   tokens.push_back({BlockTokenType::IMAGE, loc, trim(text)});
+}
+
+/*=== Inline ===*/
+void BLexer::process_inline_tokens() {
+  ILexer i_lexer;
+
+  // todo: skip verbatim
+  for (auto &t : tokens) {
+    if (t.text.has_value() && t.type != BlockTokenType::VERBATIMBLOCK) {
+      t.i_tokens = i_lexer.tokenize(t.text.value(), t.loc);
+    }
+  }
 }
 
 /*=== Helper Functions ===*/
