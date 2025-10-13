@@ -27,8 +27,8 @@ std::vector<IToken> ILexer::tokenize(const std::string &input, size_t s_loc) {
     case State::IN_VERBATIM:
       handle_verbatim_state(c);
       break;
-    case State::ESCAPING:
-      handle_escaping_state(c);
+    case State::IN_ESCAPE:
+      handle_escape_state(c);
       break;
     default:
       std::cerr << "Unknown State" << std::endl;
@@ -171,10 +171,11 @@ void ILexer::handle_normal_state(char c) {
     }
     break;
 
-  case '~':
+  case '~': {
     finalize_current_text();
-    curr_state = State::ESCAPING;
+    curr_state = State::IN_ESCAPE;
     break;
+  }
 
   case '\\':
     if (lookahead() == '\\') {
@@ -196,7 +197,7 @@ void ILexer::handle_bold_state(char c) {
   if (c == '*' && lookahead() == '*') {
     if (!curr_text.empty()) {
       // recursively tokenizing the content for nested formatting
-      auto nested_tokens = recursive_tokenize(curr_text, loc);
+      auto nested_tokens = recursive_tokenize(curr_text, fmt_loc);
 
       IToken bold_token(InlineTokenType::BOLD, loc);
       bold_token.children = nested_tokens;
@@ -207,6 +208,9 @@ void ILexer::handle_bold_state(char c) {
     end_formatting();
     curr_state = State::NORMAL;
     advance();
+  } else if (c == '~') {
+    finalize_current_text();
+    curr_state = State::IN_ESCAPE;
   } else {
     curr_text += c;
   }
@@ -215,7 +219,7 @@ void ILexer::handle_bold_state(char c) {
 void ILexer::handle_italic_state(char c) {
   if (c == '/' && lookahead() == '/') {
     if (!curr_text.empty()) {
-      auto nested_tokens = recursive_tokenize(curr_text, loc);
+      auto nested_tokens = recursive_tokenize(curr_text, fmt_loc);
 
       IToken italic_token(InlineTokenType::ITALIC, loc);
       italic_token.children = nested_tokens;
@@ -226,6 +230,9 @@ void ILexer::handle_italic_state(char c) {
     end_formatting();
     curr_state = State::NORMAL;
     advance();
+  } else if (c == '~') {
+    finalize_current_text();
+    curr_state = State::IN_ESCAPE;
   } else {
     curr_text += c;
   }
@@ -250,7 +257,7 @@ void ILexer::handle_link_state(char c) {
       text = content;
     }
 
-    auto nested_tokens = recursive_tokenize(text, loc);
+    auto nested_tokens = recursive_tokenize(text, fmt_loc);
 
     IToken link_token(InlineTokenType::LINK, loc, std::nullopt, url);
     link_token.children = nested_tokens;
@@ -283,7 +290,7 @@ void ILexer::handle_image_state(char c) {
       alt = "";
     }
 
-    auto nested_tokens = recursive_tokenize(alt, loc);
+    auto nested_tokens = recursive_tokenize(alt, fmt_loc);
 
     IToken img_token(InlineTokenType::IMAGE, loc, alt, url);
     i_tokens.push_back(img_token);
@@ -308,8 +315,7 @@ void ILexer::handle_verbatim_state(char c) {
   }
 }
 
-void ILexer::handle_escaping_state(char c) {
-  // just take it as text
+void ILexer::handle_escape_state(char c) {
   curr_text += c;
   curr_state = State::NORMAL;
 }

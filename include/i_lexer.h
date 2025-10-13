@@ -48,7 +48,7 @@ private:
     IN_LINK,     // link in text
     IN_IMAGE,    // image link in text
     IN_VERBATIM, // unformatted inline text
-    ESCAPING, // ~ : escapes all formatting, escaping characters are used as is
+    IN_ESCAPE, // escaping a formatting
   };
 
   /* State Variables */
@@ -63,7 +63,6 @@ private:
   std::string inline_data;
 
   /*=== Formatting Location ===*/
-
   void start_formatting();
   size_t get_format_start_loc();
   void end_formatting();
@@ -81,7 +80,7 @@ private:
   void handle_link_state(char c);
   void handle_image_state(char c);
   void handle_verbatim_state(char c);
-  void handle_escaping_state(char c);
+  void handle_escape_state(char c);
 
   /*=== Helper Functions ===*/
   void heat_the_engine(const std::string &input, size_t s_loc);
