@@ -134,10 +134,30 @@ void ILexer::handle_normal_state(char c) {
 
   case '/':
     if (lookahead() == '/') {
-      finalize_current_text();
-      start_formatting();
-      curr_state = State::IN_ITALIC;
-      advance();
+      // immediately after "http:" or "ftp:"
+      bool after_url_protocol = false;
+      if (curr_text.size() >= 5) {
+        std::string last5 = curr_text.substr(curr_text.size() - 5);
+        if (last5 == "http:" || last5 == "HTTP:") {
+          after_url_protocol = true;
+        }
+      }
+      if (!after_url_protocol && curr_text.size() >= 4) {
+        std::string last4 = curr_text.substr(curr_text.size() - 4);
+        if (last4 == "ftp:" || last4 == "FTP:") {
+          after_url_protocol = true;
+        }
+      }
+
+      if (after_url_protocol) {
+        curr_text += c;
+      } else {
+        // start italic formatting.
+        finalize_current_text();
+        start_formatting();
+        curr_state = State::IN_ITALIC;
+        advance();
+      }
     } else {
       curr_text += c;
     }
@@ -252,16 +272,21 @@ void ILexer::handle_link_state(char c) {
     if (pipe != std::string::npos) {
       url = content.substr(0, pipe);
       text = content.substr(pipe + 1);
+
+      auto nested_tokens = recursive_tokenize(text, fmt_loc);
+
+      IToken link_token(InlineTokenType::LINK, loc, std::nullopt, url);
+      link_token.children = nested_tokens;
+      i_tokens.push_back(link_token);
     } else {
       url = content;
-      text = content;
+
+      IToken text_token(InlineTokenType::TEXT, fmt_loc, url);
+
+      IToken link_token(InlineTokenType::LINK, loc, std::nullopt, url);
+      link_token.children.push_back(text_token);
+      i_tokens.push_back(link_token);
     }
-
-    auto nested_tokens = recursive_tokenize(text, fmt_loc);
-
-    IToken link_token(InlineTokenType::LINK, loc, std::nullopt, url);
-    link_token.children = nested_tokens;
-    i_tokens.push_back(link_token);
 
     end_formatting();
     curr_state = State::NORMAL;
