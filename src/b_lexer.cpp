@@ -10,6 +10,16 @@ BLexer::BLexer(const std::string &filepath) : pos(0), loc(1) {
 /*=== Publicaly Exposed Functions ===*/
 void BLexer::b_tokenize() {
   while (!end()) {
+    if (is_whites()) {
+      while (!end() && is_whites()) {
+        advance();
+      }
+      tokens.push_back({BlockTokenType::NEWLINE, loc});
+      if (!end() && is_newline()) {
+        advance();
+      }
+      continue;
+    }
     if (peek() == '=') {
       read_heading();
     } else if (peek() == '*') {
@@ -22,7 +32,7 @@ void BLexer::b_tokenize() {
       read_verbatim();
     } else if (peek() == '{' && lookahead() == '{') {
       read_image();
-    } else if (std::isspace(peek())) {
+    } else if (is_newline()) {
       read_blankline();
     } else {
       read_paragraph();
@@ -279,5 +289,5 @@ inline bool BLexer::is_whites() {
 inline bool BLexer::is_special() {
   return (peek() == '=' || peek() == '*' || peek() == '#' || peek() == '-' ||
           (peek() == '{' && lookahead() == '{' && lookahead(2) == '{') ||
-          (peek() == '{' && lookahead() == '{') || std::isspace(peek()));
+          (peek() == '{' && lookahead() == '{'));
 }
