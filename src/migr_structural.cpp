@@ -88,6 +88,14 @@ void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
   for (size_t i{0}; i < tokens.size(); ++i) {
     const auto &token = tokens[i];
 
+    // break out of list context for non list items
+    if (in_list_context() && token.type != BlockTokenType::ULISTITEM &&
+        token.type != BlockTokenType::OLISTITEM) {
+      while (in_list_context()) {
+        exit_list_context();
+      }
+    }
+
     try {
       switch (token.type) {
       case BlockTokenType::HEADING:
