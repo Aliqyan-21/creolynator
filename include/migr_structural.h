@@ -43,7 +43,7 @@ private:
 
   /* stack manangement */
   void manage_heading_stack(int heading_level);
-  void enter_list_context(std::shared_ptr<MIGRNode> list_type);
+  void enter_list_context(MIGRNodeType list_type);
   void exit_list_context();
   bool in_list_context() const;
 
