@@ -39,8 +39,39 @@ StructuralLayer::query_nodes(std::function<bool(const MIGRNode &)> predicate) {
 }
 
 void StructuralLayer::serialize(std::ostream &out) const {
-  // todo: implement serialization of data
-  SPEAK << "Serialization is not implemented yet" << std::endl;
+  // NOTE: a very simple json like serialization
+  out << "{\n";
+  out << "  \"structural_layer\": {\n";
+  out << "    \"root\": \"" << root_->id_ << "\",\n";
+  out << "      \"nodes\": {\n";
+
+  bool first = true;
+  for (const auto &pair : nodes_) {
+    if (!first) {
+      out << ",\n";
+    }
+    first = false;
+
+    auto node = pair.second;
+    out << "      \"" << node->id_ << "\": {\n";
+    out << "        \"type\": " << static_cast<int>(node->type_) << ",\n";
+    out << "        \"content\": \"" << node->content_ << "\",\n";
+    out << "        \"children\": [";
+
+    bool first_child = true;
+    for (const auto &child : node->children_) {
+      if (!first_child) {
+        out << ", ";
+      }
+      first_child = false;
+      out << "\"" << child->id_ << "\"";
+    }
+    out << "]\n";
+    out << "      }";
+  }
+  out << "\n    }\n";
+  out << "  }\n";
+  out << "}";
 }
 
 void StructuralLayer::deserialize(std::istream &in) const {
@@ -95,7 +126,7 @@ void StructuralLayer::process_heading_token(const BToken &token) {
   parent_stack_.push(heading_node);
   add_node(heading_node);
 
-  // todo: process inline content then
+  process_inline_content(heading_node, token.text.value());
 }
 void StructuralLayer::process_paragraph_token(const BToken &token) {
   auto para_node =
@@ -107,7 +138,7 @@ void StructuralLayer::process_paragraph_token(const BToken &token) {
 
   add_node(para_node);
 
-  // todo: process inline content then
+  process_inline_content(para_node, token.text.value());
 }
 void StructuralLayer::process_ulist_token(const BToken &token) {
   auto ulist_node =
@@ -127,7 +158,7 @@ void StructuralLayer::process_ulist_token(const BToken &token) {
 
   add_node(ulist_node);
 
-  // todo: process inline content then
+  process_inline_content(ulist_node, token.text.value());
 }
 void StructuralLayer::process_olist_token(const BToken &token) {
   auto olist_node =
@@ -147,7 +178,7 @@ void StructuralLayer::process_olist_token(const BToken &token) {
 
   add_node(olist_node);
 
-  // todo: process inline content then
+  process_inline_content(olist_node, token.text.value());
 }
 
 void StructuralLayer::manage_heading_stack(int heading_level) {
@@ -171,4 +202,17 @@ void StructuralLayer::manage_heading_stack(int heading_level) {
 
 void StructuralLayer::enter_list_context(std::shared_ptr<MIGRNode> list_node) {
   list_stack_.push(list_node);
+}
+
+void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
+                                             const std::string &content) {
+  if (content.empty()) {
+    return;
+  }
+
+  // NOTE: this is just for now texting block types
+  // TODO: we will use inline tokens (ILexer) originally ofc
+  auto text_node = std::make_shared<MIGRNode>(MIGRNodeType::TEXT, content);
+  parent->add_child(text_node);
+  add_node(text_node);
 }

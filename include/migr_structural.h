@@ -1,8 +1,8 @@
 #ifndef MIGR_STRUCTURAL_H
 #define MIGR_STRUCTURAL_H
 
-#include "migr.h"
 #include "b_lexer.h"
+#include "migr.h"
 #include <stack>
 
 /* Represent Document Outline As A Tree */
@@ -40,6 +40,10 @@ private:
   /* stack manangement */
   void manage_heading_stack(int heading_level);
   void enter_list_context(std::shared_ptr<MIGRNode> list_node);
+
+  /* inline processing */
+  void process_inline_content(std::shared_ptr<MIGRNode> parent,
+                              const std::string &content);
 };
 
 #endif //! MIGR_STRUCTURAL_H
