@@ -36,6 +36,10 @@ private:
   void process_paragraph_token(const BToken &token);
   void process_ulist_token(const BToken &token);
   void process_olist_token(const BToken &token);
+  void process_horizontal_rule_token(const BToken &token);
+  void process_verbatim_token(const BToken &token);
+  void process_image_token(const BToken &token);
+  void process_newline_token(const BToken &token);
 
   /* stack manangement */
   void manage_heading_stack(int heading_level);

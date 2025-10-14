@@ -97,10 +97,26 @@ void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
     case BlockTokenType::OLISTITEM:
       process_olist_token(token);
       break;
-    // todo: later we will handle more block tokens
+    case BlockTokenType::HORIZONTALRULE:
+      process_horizontal_rule_token(token);
+      break;
+    case BlockTokenType::VERBATIMBLOCK:
+      process_verbatim_token(token);
+      break;
+    case BlockTokenType::IMAGE:
+      process_image_token(token);
+      break;
+    case BlockTokenType::NEWLINE:
+      process_newline_token(token);
+      break;
     default:
+      // todo: some error handling and recovery mechanism needed
       break;
     }
+  }
+  // cleaning up any remaining list context
+  while (!list_stack_.empty()) {
+    list_stack_.pop();
   }
 }
 
@@ -181,6 +197,22 @@ void StructuralLayer::process_olist_token(const BToken &token) {
   process_inline_content(olist_node, token.text.value());
 }
 
+void StructuralLayer::process_horizontal_rule_token(const BToken &token) {
+  // TODO: implement
+}
+
+void StructuralLayer::process_verbatim_token(const BToken &token) {
+  // TODO: implement
+}
+
+void StructuralLayer::process_image_token(const BToken &token) {
+  // TODO: implement
+}
+
+void StructuralLayer::process_newline_token(const BToken &token) {
+  // TODO: implement
+}
+
 void StructuralLayer::manage_heading_stack(int heading_level) {
   // pop until find appropriate parent level
   while (parent_stack_.size() > 1) {
@@ -210,7 +242,7 @@ void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
     return;
   }
 
-  // NOTE: this is just for now texting block types
+  // NOTE: this is just for now testing block types
   // TODO: we will use inline tokens (ILexer) originally ofc
   auto text_node = std::make_shared<MIGRNode>(MIGRNodeType::TEXT, content);
   parent->add_child(text_node);
