@@ -13,9 +13,13 @@ enum class MIGRNodeType {
   DOCUMENT_ROOT,
   HEADING,
   PARAGRAPH,
-  LIST,
-  LIST_ITEM,
-  VERBATIM,
+  ULIST,      // container
+  ULIST_ITEM, // item
+  OLIST,
+  OLIST_ITEM,
+  HORIZONTAL_RULE,
+  VERBATIM_BLOCK,
+  NEWLINE,
 
   /* inline */
   TEXT,
@@ -23,6 +27,8 @@ enum class MIGRNodeType {
   ITALIC,
   LINK,
   IMAGE,
+  VERBATIM_INLINE,
+  LINEBREAK,
 
   /* semantic */
   TAG,
