@@ -1,5 +1,7 @@
 #include "migr_structural.h"
 #include "globals.h"
+#include <memory>
+#include <string>
 
 StructuralLayer::StructuralLayer() {
   root_ = std::make_shared<MIGRNode>(MIGRNodeType::DOCUMENT_ROOT);
@@ -64,6 +66,7 @@ void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
     case BlockTokenType::OLISTITEM:
       process_olist_token(token);
       break;
+    // todo: later we will handle more block tokens
     default:
       break;
     }
@@ -73,14 +76,99 @@ void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
 std::shared_ptr<MIGRNode> StructuralLayer::get_root() const { return root_; }
 
 void StructuralLayer::process_heading_token(const BToken &token) {
-  // todo: implement
+  int level{1}; // default
+
+  if (token.level.has_value()) {
+    level = token.level.value();
+  }
+
+  manage_heading_stack(level);
+
+  auto heading_node =
+      std::make_shared<MIGRNode>(MIGRNodeType::HEADING, token.text.value());
+  heading_node->metadata_["level"] = std::to_string(level);
+
+  if (!parent_stack_.empty()) {
+    parent_stack_.top()->add_child(heading_node);
+  }
+
+  parent_stack_.push(heading_node);
+  add_node(heading_node);
+
+  // todo: process inline content then
 }
 void StructuralLayer::process_paragraph_token(const BToken &token) {
-  // todo: implement
+  auto para_node =
+      std::make_shared<MIGRNode>(MIGRNodeType::PARAGRAPH, token.text.value());
+
+  if (!parent_stack_.empty()) {
+    parent_stack_.top()->add_child(para_node);
+  }
+
+  add_node(para_node);
+
+  // todo: process inline content then
 }
 void StructuralLayer::process_ulist_token(const BToken &token) {
-  // todo: implement
+  auto ulist_node =
+      std::make_shared<MIGRNode>(MIGRNodeType::ULIST_ITEM, token.text.value());
+
+  if (!list_stack_.empty()) {
+    list_stack_.top()->add_child(ulist_node);
+  } else {
+    auto list_node = std::make_shared<MIGRNode>(MIGRNodeType::ULIST_ITEM);
+    if (!parent_stack_.empty()) {
+      parent_stack_.top()->add_child(list_node);
+    }
+    enter_list_context(list_node);
+    add_node(list_node);
+    list_node->add_child(ulist_node);
+  }
+
+  add_node(ulist_node);
+
+  // todo: process inline content then
 }
 void StructuralLayer::process_olist_token(const BToken &token) {
-  // todo: implement
+  auto olist_node =
+      std::make_shared<MIGRNode>(MIGRNodeType::OLIST_ITEM, token.text.value());
+
+  if (!list_stack_.empty()) {
+    list_stack_.top()->add_child(olist_node);
+  } else {
+    auto list_node = std::make_shared<MIGRNode>(MIGRNodeType::OLIST_ITEM);
+    if (!parent_stack_.empty()) {
+      parent_stack_.top()->add_child(list_node);
+    }
+    enter_list_context(list_node);
+    add_node(list_node);
+    list_node->add_child(olist_node);
+  }
+
+  add_node(olist_node);
+
+  // todo: process inline content then
+}
+
+void StructuralLayer::manage_heading_stack(int heading_level) {
+  // pop until find appropriate parent level
+  while (parent_stack_.size() > 1) {
+    auto curr = parent_stack_.top();
+    if (curr->type_ == MIGRNodeType::HEADING) {
+      auto curr_level_it = curr->metadata_.find("level");
+      if (curr_level_it != curr->metadata_.end()) {
+        int curr_level = std::stoi(curr_level_it->second);
+        if (curr_level < heading_level) {
+          break;
+        }
+      }
+    } else if (curr->type_ == MIGRNodeType::DOCUMENT_ROOT) {
+      break;
+    }
+    parent_stack_.pop();
+  }
+}
+
+void StructuralLayer::enter_list_context(std::shared_ptr<MIGRNode> list_node) {
+  list_stack_.push(list_node);
 }

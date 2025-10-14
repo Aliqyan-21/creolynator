@@ -36,6 +36,10 @@ private:
   void process_paragraph_token(const BToken &token);
   void process_ulist_token(const BToken &token);
   void process_olist_token(const BToken &token);
+
+  /* stack manangement */
+  void manage_heading_stack(int heading_level);
+  void enter_list_context(std::shared_ptr<MIGRNode> list_node);
 };
 
 #endif //! MIGR_STRUCTURAL_H
