@@ -14,3 +14,6 @@ B_LexerError::B_LexerError(const std::string &msg, size_t loc)
 
 I_LexerError::I_LexerError(const std::string &msg, size_t loc)
     : CNError("Inline Lexer: " + msg, loc) {}
+
+MIGRError::MIGRError(const std::string &msg, size_t loc)
+    : CNError("[MIGR ERROR] " + msg, loc) {}

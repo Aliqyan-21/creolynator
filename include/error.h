@@ -24,4 +24,9 @@ public:
   explicit I_LexerError(const std::string &msg, size_t loc);
 };
 
+class MIGRError : public CNError {
+public:
+  explicit MIGRError(const std::string &msg, size_t loc);
+};
+
 #endif // !ERROR_H
