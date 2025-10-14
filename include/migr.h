@@ -80,5 +80,16 @@ private:
   static size_t next_id_;
 };
 
+/* MIGRGraphLayer: Interface for Layer Management */
+class MIGRGraphLayer {
+public:
+  virtual ~MIGRGraphLayer() = default;
+  virtual void add_node(std::shared_ptr<MIGRNode> node) = 0;
+  virtual void remove_node(std::shared_ptr<MIGRNode> node_id) = 0;
+  virtual std::vector<std::shared_ptr<MIGRNode>>
+  query_nodes(std::function<bool(const MIGRNode &)> predicate) = 0;
+  virtual void serialize(std::ostream &out) const = 0;
+  virtual void deserialize(std::istream &in) const = 0;
+};
 
 #endif //! MIGR_H
