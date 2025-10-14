@@ -46,3 +46,41 @@ void StructuralLayer::deserialize(std::istream &in) const {
   // json parsing as data will be in json format
   SPEAK << "Deserialization is not implemented yet" << std::endl;
 }
+
+void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
+  for (size_t i{0}; i < tokens.size(); ++i) {
+    const auto &token = tokens[i];
+
+    switch (token.type) {
+    case BlockTokenType::HEADING:
+      process_heading_token(token);
+      break;
+    case BlockTokenType::PARAGRAPH:
+      process_paragraph_token(token);
+      break;
+    case BlockTokenType::ULISTITEM:
+      process_ulist_token(token);
+      break;
+    case BlockTokenType::OLISTITEM:
+      process_olist_token(token);
+      break;
+    default:
+      break;
+    }
+  }
+}
+
+std::shared_ptr<MIGRNode> StructuralLayer::get_root() const { return root_; }
+
+void StructuralLayer::process_heading_token(const BToken &token) {
+  // todo: implement
+}
+void StructuralLayer::process_paragraph_token(const BToken &token) {
+  // todo: implement
+}
+void StructuralLayer::process_ulist_token(const BToken &token) {
+  // todo: implement
+}
+void StructuralLayer::process_olist_token(const BToken &token) {
+  // todo: implement
+}
