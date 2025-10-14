@@ -1,9 +1,11 @@
 #include "migr_structural.h"
 #include "globals.h"
+#include <error.h>
 #include <memory>
 #include <string>
 
-StructuralLayer::StructuralLayer() {
+StructuralLayer::StructuralLayer()
+    : recovery_strategy_(RecoveryStrategy::ATTACH_TO_PARENT) {
   root_ = std::make_shared<MIGRNode>(MIGRNodeType::DOCUMENT_ROOT);
   nodes_[root_->id_] = root_;
   parent_stack_.push(root_);
@@ -81,39 +83,52 @@ void StructuralLayer::deserialize(std::istream &in) const {
 }
 
 void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
+  clear_errors();
+
   for (size_t i{0}; i < tokens.size(); ++i) {
     const auto &token = tokens[i];
 
-    switch (token.type) {
-    case BlockTokenType::HEADING:
-      process_heading_token(token);
-      break;
-    case BlockTokenType::PARAGRAPH:
-      process_paragraph_token(token);
-      break;
-    case BlockTokenType::ULISTITEM:
-      process_ulist_token(token);
-      break;
-    case BlockTokenType::OLISTITEM:
-      process_olist_token(token);
-      break;
-    case BlockTokenType::HORIZONTALRULE:
-      process_horizontal_rule_token(token);
-      break;
-    case BlockTokenType::VERBATIMBLOCK:
-      process_verbatim_token(token);
-      break;
-    case BlockTokenType::IMAGE:
-      process_image_token(token);
-      break;
-    case BlockTokenType::NEWLINE:
-      process_newline_token(token);
-      break;
-    default:
-      // todo: some error handling and recovery mechanism needed
-      break;
+    try {
+      switch (token.type) {
+      case BlockTokenType::HEADING:
+        process_heading_token(token);
+        break;
+      case BlockTokenType::PARAGRAPH:
+        process_paragraph_token(token);
+        break;
+      case BlockTokenType::ULISTITEM:
+        process_ulist_token(token);
+        break;
+      case BlockTokenType::OLISTITEM:
+        process_olist_token(token);
+        break;
+      case BlockTokenType::HORIZONTALRULE:
+        process_horizontal_rule_token(token);
+        break;
+      case BlockTokenType::VERBATIMBLOCK:
+        process_verbatim_token(token);
+        break;
+      case BlockTokenType::IMAGE:
+        process_image_token(token);
+        break;
+      case BlockTokenType::NEWLINE:
+        process_newline_token(token);
+        break;
+      default:
+        handle_error("Unknown block token type", i);
+        if (!attempt_recovery(token)) {
+          throw MIGRError("Failed to recover from unkown token", i, "skip");
+        }
+        break;
+      }
+    } catch (const MIGRError &e) {
+      errors_.push_back(e);
+      if (e.get_severity() == MIGRError::Severity::FATAL) {
+        throw;
+      }
     }
   }
+
   // cleaning up any remaining list context
   while (in_list_context()) {
     list_stack_.pop();
@@ -125,14 +140,12 @@ std::shared_ptr<MIGRNode> StructuralLayer::get_root() const { return root_; }
 void StructuralLayer::process_heading_token(const BToken &token) {
   int level{1}; // default
 
-  if (token.level.has_value()) {
-    level = token.level.value();
-  }
+  level = token.level.value_or(1);
 
   manage_heading_stack(level);
 
-  auto heading_node =
-      std::make_shared<MIGRNode>(MIGRNodeType::HEADING, token.text.value());
+  auto heading_node = std::make_shared<MIGRNode>(MIGRNodeType::HEADING,
+                                                 token.text.value_or(""));
   heading_node->metadata_["level"] = std::to_string(level);
 
   if (!parent_stack_.empty()) {
@@ -142,12 +155,12 @@ void StructuralLayer::process_heading_token(const BToken &token) {
   parent_stack_.push(heading_node);
   add_node(heading_node);
 
-  process_inline_content(heading_node, token.text.value());
+  process_inline_content(heading_node, token.text.value_or(""));
 }
 
 void StructuralLayer::process_paragraph_token(const BToken &token) {
-  auto para_node =
-      std::make_shared<MIGRNode>(MIGRNodeType::PARAGRAPH, token.text.value());
+  auto para_node = std::make_shared<MIGRNode>(MIGRNodeType::PARAGRAPH,
+                                              token.text.value_or(""));
 
   if (!parent_stack_.empty()) {
     parent_stack_.top()->add_child(para_node);
@@ -155,17 +168,17 @@ void StructuralLayer::process_paragraph_token(const BToken &token) {
 
   add_node(para_node);
 
-  process_inline_content(para_node, token.text.value());
+  process_inline_content(para_node, token.text.value_or(""));
 }
 
 void StructuralLayer::process_ulist_token(const BToken &token) {
   int level = token.level.value_or(1);
 
-  while (list_stack_.size() > level) {
+  while ((int)list_stack_.size() > level) {
     exit_list_context();
   }
 
-  if (list_stack_.size() < level || !in_list_context()) {
+  if ((int)list_stack_.size() < level || !in_list_context()) {
     enter_list_context(MIGRNodeType::ULIST);
   }
 
@@ -177,17 +190,17 @@ void StructuralLayer::process_ulist_token(const BToken &token) {
   }
 
   add_node(list_item_node);
-  process_inline_content(list_item_node, token.text.value());
+  process_inline_content(list_item_node, token.text.value_or(""));
 }
 
 void StructuralLayer::process_olist_token(const BToken &token) {
   int level = token.level.value_or(1);
 
-  while (list_stack_.size() > level) {
+  while ((int)list_stack_.size() > level) {
     exit_list_context();
   }
 
-  if (list_stack_.size() < level || !in_list_context()) {
+  if ((int)list_stack_.size() < level || !in_list_context()) {
     enter_list_context(MIGRNodeType::OLIST);
   }
 
@@ -199,7 +212,7 @@ void StructuralLayer::process_olist_token(const BToken &token) {
   }
 
   add_node(list_item_node);
-  process_inline_content(list_item_node, token.text.value());
+  process_inline_content(list_item_node, token.text.value_or(""));
 }
 
 void StructuralLayer::process_horizontal_rule_token(const BToken &token) {
@@ -294,4 +307,49 @@ void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
   auto text_node = std::make_shared<MIGRNode>(MIGRNodeType::TEXT, content);
   parent->add_child(text_node);
   add_node(text_node);
+}
+
+//------------------------------------------//
+//      Error Handling and Recovery         //
+//------------------------------------------//
+
+void StructuralLayer::set_recovery_stratgegy(RecoveryStrategy strategy) {
+  recovery_strategy_ = strategy;
+}
+
+const std::vector<MIGRError> &StructuralLayer::ger_errors() { return errors_; }
+
+void StructuralLayer::clear_errors() { errors_.clear(); }
+
+void StructuralLayer::handle_error(const std::string &message, size_t line) {
+  errors_.emplace_back(message, line, "attempting recovery");
+}
+
+bool StructuralLayer::attempt_recovery(const BToken &token) {
+  switch (recovery_strategy_) {
+  case RecoveryStrategy::SKIP:
+    // just skip
+    return true;
+  case RecoveryStrategy::ATTACH_TO_PARENT:
+    // just creating generic node and attaching to parent
+    if (!parent_stack_.empty()) {
+      auto recovery_node = std::make_shared<MIGRNode>(MIGRNodeType::PARAGRAPH,
+                                                      token.text.value_or(""));
+      parent_stack_.top()->add_child(recovery_node);
+      add_node(recovery_node);
+      return true;
+    }
+    return false;
+  case RecoveryStrategy::CREATE_PLACEHOLDER:
+    // creating placeholder node
+    auto placeholder = std::make_shared<MIGRNode>(
+        MIGRNodeType::PARAGRAPH,
+        "[PLACEHOLDER: " + token.text.value_or("") + "]");
+    if (!parent_stack_.empty()) {
+      parent_stack_.top()->add_child(placeholder);
+    }
+    add_node(placeholder);
+    return true;
+  }
+  return false;
 }

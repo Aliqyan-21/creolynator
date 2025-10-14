@@ -2,8 +2,15 @@
 #define MIGR_STRUCTURAL_H
 
 #include "b_lexer.h"
+#include "error.h"
 #include "migr.h"
 #include <stack>
+
+enum class RecoveryStrategy {
+  SKIP,
+  ATTACH_TO_PARENT,
+  CREATE_PLACEHOLDER,
+};
 
 /* Represent Document Outline As A Tree */
 class StructuralLayer : public MIGRGraphLayer {
@@ -22,14 +29,21 @@ public:
   void build_from_tokens(const std::vector<BToken> &tokens);
   std::shared_ptr<MIGRNode> get_root() const;
 
+  /* Error Recovery */
+  void set_recovery_stratgegy(RecoveryStrategy strategy);
+  const std::vector<MIGRError> &ger_errors();
+  void clear_errors();
+
 private:
   std::shared_ptr<MIGRNode> root_;
   std::unordered_map<std::string, std::shared_ptr<MIGRNode>>
       nodes_; // [id : node]
+  RecoveryStrategy recovery_strategy_;
 
   /* parsing state */
   std::stack<std::shared_ptr<MIGRNode>> parent_stack_;
   std::stack<std::shared_ptr<MIGRNode>> list_stack_;
+  std::vector<MIGRError> errors_;
 
   /* Token Processing Helpers */
   void process_heading_token(const BToken &token);
@@ -50,6 +64,10 @@ private:
   /* inline processing */
   void process_inline_content(std::shared_ptr<MIGRNode> parent,
                               const std::string &content);
+
+  /* Error Handling */
+  void handle_error(const std::string &message, size_t line);
+  bool attempt_recovery(const BToken &token);
 };
 
 #endif //! MIGR_STRUCTURAL_H
