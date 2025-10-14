@@ -187,6 +187,10 @@ void StructuralLayer::process_ulist_token(const BToken &token) {
 
   if (in_list_context()) {
     list_stack_.top()->add_child(list_item_node);
+  } else {
+    if (!parent_stack_.empty()) {
+      parent_stack_.top()->add_child(list_item_node);
+    }
   }
 
   add_node(list_item_node);
@@ -209,6 +213,10 @@ void StructuralLayer::process_olist_token(const BToken &token) {
 
   if (in_list_context()) {
     list_stack_.top()->add_child(list_item_node);
+  } else {
+    if (!parent_stack_.empty()) {
+      parent_stack_.top()->add_child(list_item_node);
+    }
   }
 
   add_node(list_item_node);
@@ -278,7 +286,6 @@ void StructuralLayer::manage_heading_stack(int heading_level) {
 
 void StructuralLayer::enter_list_context(MIGRNodeType list_type) {
   auto list_node = std::make_shared<MIGRNode>(list_type);
-  list_stack_.push(list_node);
 
   if (!parent_stack_.empty()) {
     parent_stack_.top()->add_child(list_node);
