@@ -1,14 +1,17 @@
 #include "b_lexer.h"
 #include "error.h"
+#include "globals.h"
 #include "utils.h"
 #include <iostream>
 
 BLexer::BLexer(const std::string &filepath) : pos(0), loc(1) {
   creole_data = read_creole_file(filepath);
+  _V_ << " [BLexer] Creole data read." << std::endl;
 }
 
 /*=== Publicaly Exposed Functions ===*/
 void BLexer::b_tokenize() {
+  _V_ << " [BLexer] Block Tokenization Started." << std::endl;
   while (!end()) {
     if (is_whites()) {
       while (!end() && is_whites()) {
@@ -30,8 +33,6 @@ void BLexer::b_tokenize() {
       read_horizonalrule();
     } else if (peek() == '{' && lookahead() == '{' && lookahead(2) == '{') {
       read_verbatim();
-    } else if (peek() == '{' && lookahead() == '{') {
-      read_image();
     } else if (is_newline()) {
       read_blankline();
     } else {
@@ -39,6 +40,7 @@ void BLexer::b_tokenize() {
     }
   }
   tokens.push_back({BlockTokenType::ENDOF, loc});
+  _V_ << " [BLexer] Block Tokenization Ended." << std::endl;
 }
 
 std::vector<BToken> BLexer::get_tokens() {
@@ -98,6 +100,7 @@ void BLexer::print_tokens() {
 
 /*=== Reading Functions ===*/
 void BLexer::read_heading() {
+  _V_ << " [BLexer] Reading and Processing Heading." << std::endl;
   int level{0};
   while (peek() == '=') {
     level++;
@@ -118,6 +121,7 @@ void BLexer::read_heading() {
 }
 
 void BLexer::read_uli() {
+  _V_ << " [BLexer] Reading and Processing Unordered List." << std::endl;
   int level{0};
   while (peek() == '*') {
     level++;
@@ -134,6 +138,7 @@ void BLexer::read_uli() {
 }
 
 void BLexer::read_oli() {
+  _V_ << " [BLexer] Reading and Processing Ordered List." << std::endl;
   int level{0};
   while (peek() == '#') {
     level++;
@@ -150,6 +155,7 @@ void BLexer::read_oli() {
 }
 
 void BLexer::read_horizonalrule() {
+  _V_ << " [BLexer] Reading and Processing Horizontal Rule." << std::endl;
   for (int i{0}; i < 4; ++i) {
     advance();
   }
@@ -158,6 +164,7 @@ void BLexer::read_horizonalrule() {
 }
 
 void BLexer::read_paragraph() {
+  _V_ << " [BLexer] Reading and Processing Paragraph." << std::endl;
   std::string text;
   size_t start_loc = loc;
   while (!end()) {
@@ -172,6 +179,24 @@ void BLexer::read_paragraph() {
 
     if (is_newline()) {
       advance();
+
+      if (!end() && is_newline()) {
+        break;
+      }
+
+      size_t temp_pos = pos;
+      bool blank_line{true};
+      while (temp_pos < creole_data.size() && creole_data[temp_pos] != '\n') {
+        if (!std::isspace(creole_data[temp_pos])) {
+          blank_line = false;
+          break;
+        }
+        temp_pos++;
+      }
+      if (blank_line && temp_pos < creole_data.size() &&
+          creole_data[temp_pos] == '\n') {
+        break;
+      }
     }
     text += '\n';
   }
@@ -180,6 +205,7 @@ void BLexer::read_paragraph() {
 }
 
 void BLexer::read_verbatim() {
+  _V_ << " [BLexer] Reading and Processing Verbatim Block." << std::endl;
   size_t _loc = loc;
   int depth{1};
   advance(3); // {
@@ -215,6 +241,7 @@ void BLexer::read_verbatim() {
 }
 
 void BLexer::read_blankline() {
+  _V_ << " [BLexer] Reading and Processing Blankline." << std::endl;
   while (!end() && !is_newline()) {
     advance();
   }
@@ -224,6 +251,7 @@ void BLexer::read_blankline() {
 }
 
 void BLexer::read_image() {
+  _V_ << " [BLexer] Reading and Processing Image Token." << std::endl;
   advance(2); // {
 
   std::string text;
@@ -238,12 +266,14 @@ void BLexer::read_image() {
 
 /*=== Inline ===*/
 void BLexer::process_inline_tokens() {
+  _V_ << " [BLexer] Processing Inline Tokens" << std::endl;
   ILexer i_lexer;
 
-  // todo: skip verbatim
   for (auto &t : tokens) {
     if (t.text.has_value() && t.type != BlockTokenType::VERBATIMBLOCK) {
       t.i_tokens = i_lexer.tokenize(t.text.value(), t.loc);
+      _V_ << " [BLexer] Processed inline tokens for: "
+          << t.text.value_or("[EMPTY]") << std::endl;
     }
   }
 }
@@ -288,6 +318,5 @@ inline bool BLexer::is_whites() {
 
 inline bool BLexer::is_special() {
   return (peek() == '=' || peek() == '*' || peek() == '#' || peek() == '-' ||
-          (peek() == '{' && lookahead() == '{' && lookahead(2) == '{') ||
-          (peek() == '{' && lookahead() == '{'));
+          (peek() == '{' && lookahead() == '{' && lookahead(2) == '{'));
 }
