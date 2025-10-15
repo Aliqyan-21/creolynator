@@ -1,0 +1,164 @@
+= Creole Wiki Syntax Test
+
+a comprehensive test file Creolynator.
+
+== Text Formatting
+
+Regular text can include //italic text//, **bold text**, and even **//bold italic text//**.
+
+You can also have //italic with **bold inside**// or **bold with //italic inside//**.
+
+== Paragraphs and Line Breaks
+
+This is the first paragraph.
+It continues on multiple lines
+without blank lines between them.
+
+This is a second paragraph, separated by a blank line.
+
+This is a third paragraph.
+
+== Headings at All Levels
+
+= Level 1 Heading
+== Level 2 Heading
+=== Level 3 Heading
+==== Level 4 Heading
+===== Level 5 Heading
+====== Level 6 Heading
+
+== Headings with Closing Marks ==
+
+=== This heading has closing marks ===
+==== This one too ====
+
+== Unordered Lists
+
+* First item
+* Second item
+* Third item
+
+* Item with multiple lines
+that continues here
+* Another item
+
+** Nested item level 2
+*** Nested item level 3
+**** Nested item level 4
+
+* Back to level 1
+
+== Ordered Lists
+
+# First numbered item
+# Second numbered item
+# Third numbered item
+
+## Nested numbered item
+### Triple nested
+#### Quadruple nested
+
+# Back to first level
+
+== Mixed Lists
+
+* Unordered item
+** Nested unordered
+# Ordered item
+## Nested ordered
+* Back to unordered
+
+== Horizontal Rules
+
+----
+
+Another section.
+
+== Images
+
+{{logo.png}}
+
+{{banner.jpg|Company Banner}}
+
+{{profile.gif | User Profile Picture }}
+
+* {{thumbnail.png|Thumbnail in list}}
+
+== Verbatim Blocks
+
+Here's a code block:
+
+{{{
+def hello_world():
+    print("Hello, World!")
+    return True
+}}}
+
+Another example:
+
+{{{
+// This is **not** formatted
+* Neither is this
+== Or this heading
+}}}
+
+Nested verbatim test:
+
+{{{
+Outer block
+{{{
+Inner block content
+}}}
+Back to outer
+}}}
+
+== Complex Formatting Examples
+
+This paragraph has **bold text with //italic inside//** and also //italic with **bold inside**//.
+
+* List item with **bold** and //italic//
+** Nested with **//bold italic//**
+*** Deep nesting with formatting
+
+# Numbered item with **emphasis**
+## Sub-item with //italic//
+
+== Empty Lines and Spacing
+
+First paragraph before multiple blank lines.
+
+
+
+Second paragraph after multiple blank lines.
+
+
+Third paragraph after two blank lines.
+
+== Special Characters in Text
+
+Some special chars that shouldn't break: * # = - { }
+
+But these should still work:
+* As list items
+# As numbered items
+
+== Edge Cases
+
+**bold at start** and //italic at end//
+
+//italic at start// and **bold at end**
+
+**//combined//** and //first// then **second**
+
+{{{
+Verbatim with special markers:
+----
+====
+****
+####
+{{image}}
+}}}
+
+Text after verbatim.
+
+End of test file.
