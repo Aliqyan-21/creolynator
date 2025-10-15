@@ -172,11 +172,33 @@ void BLexer::read_paragraph() {
 
     if (is_newline()) {
       advance();
+
+      if (!end() && is_newline()) {
+        break;
+      }
+
+      size_t temp_pos = pos;
+      bool blank_line{true};
+      while (temp_pos < creole_data.size() && creole_data[temp_pos] != '\n') {
+        if (!std::isspace(creole_data[temp_pos])) {
+          blank_line = false;
+          break;
+        }
+        temp_pos++;
+      }
+      if (blank_line && temp_pos < creole_data.size() &&
+          creole_data[temp_pos] == '\n') {
+        break;
+      }
     }
     text += '\n';
   }
 
   tokens.push_back({BlockTokenType::PARAGRAPH, start_loc, trim(text)});
+  _V_ << "TOKEN: type: " << token_to_string(tokens.back().type)
+      << ", loc: " << tokens.back().loc
+      << ", content: " << trim(tokens.back().text.value_or(""))
+      << ", level: " << tokens.back().level.value_or(-1) << std::endl;
 }
 
 void BLexer::read_verbatim() {
