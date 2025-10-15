@@ -6,7 +6,7 @@
 size_t MIGRNode::next_id_ = 1;
 
 MIGRNode::MIGRNode(MIGRNodeType type, const std::string &c)
-    : type_(type), content_(c), version_(1) {
+    : type_(type), content_(c), loc_(0), version_(1) {
   generate_id();
   update_hash();
 }
@@ -64,7 +64,13 @@ std::string MIGRNode::to_string() const {
   oss << "MIGRNode:\n"
       << "id: " << id_ << "\n"
       << "type: " << static_cast<int>(type_) << "\n"
-      << "content: " << content_ << "\n"
+      << "loc: " << loc_ << "\n"
+      << "content: "
+      << (content_.empty()
+              ? "[empty]"
+              : content_.substr(0, 50) + (content_.size() > 50 ? "..." : ""))
+      << "\n"
+      << "children: " << children_.size() << "\n"
       << "sementic_links: " << semantic_links_.size() << "\n"
       << "version: " << version_ << "\n";
   return oss.str();

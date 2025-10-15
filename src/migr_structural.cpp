@@ -155,6 +155,7 @@ void StructuralLayer::process_heading_token(const BToken &token) {
   auto heading_node = std::make_shared<MIGRNode>(MIGRNodeType::HEADING,
                                                  token.text.value_or(""));
   heading_node->metadata_["level"] = std::to_string(level);
+  heading_node->loc_ = token.loc;
 
   if (!parent_stack_.empty()) {
     parent_stack_.top()->add_child(heading_node);
@@ -169,6 +170,8 @@ void StructuralLayer::process_heading_token(const BToken &token) {
 void StructuralLayer::process_paragraph_token(const BToken &token) {
   auto para_node = std::make_shared<MIGRNode>(MIGRNodeType::PARAGRAPH,
                                               token.text.value_or(""));
+
+  para_node->loc_ = token.loc;
 
   if (!parent_stack_.empty()) {
     parent_stack_.top()->add_child(para_node);
@@ -192,6 +195,7 @@ void StructuralLayer::process_ulist_token(const BToken &token) {
 
   auto list_item_node = std::make_shared<MIGRNode>(MIGRNodeType::ULIST_ITEM,
                                                    token.text.value_or(""));
+  list_item_node->loc_ = token.loc;
 
   if (in_list_context()) {
     list_stack_.top()->add_child(list_item_node);
@@ -218,6 +222,7 @@ void StructuralLayer::process_olist_token(const BToken &token) {
 
   auto list_item_node = std::make_shared<MIGRNode>(MIGRNodeType::OLIST_ITEM,
                                                    token.text.value_or(""));
+  list_item_node->loc_ = token.loc;
 
   if (in_list_context()) {
     list_stack_.top()->add_child(list_item_node);
@@ -233,6 +238,7 @@ void StructuralLayer::process_olist_token(const BToken &token) {
 
 void StructuralLayer::process_horizontal_rule_token(const BToken &token) {
   auto hr_node = std::make_shared<MIGRNode>(MIGRNodeType::HORIZONTAL_RULE);
+  hr_node->loc_ = token.loc;
 
   if (!parent_stack_.empty()) {
     parent_stack_.top()->add_child(hr_node);
@@ -244,6 +250,7 @@ void StructuralLayer::process_horizontal_rule_token(const BToken &token) {
 void StructuralLayer::process_verbatim_token(const BToken &token) {
   auto verb_node = std::make_shared<MIGRNode>(MIGRNodeType::VERBATIM_BLOCK,
                                               token.text.value_or(""));
+  verb_node->loc_ = token.loc;
 
   if (!parent_stack_.empty()) {
     parent_stack_.top()->add_child(verb_node);
@@ -255,6 +262,7 @@ void StructuralLayer::process_verbatim_token(const BToken &token) {
 void StructuralLayer::process_image_token(const BToken &token) {
   auto image_node =
       std::make_shared<MIGRNode>(MIGRNodeType::IMAGE, token.text.value_or(""));
+  image_node->loc_ = token.loc;
 
   if (!parent_stack_.empty()) {
     parent_stack_.top()->add_child(image_node);
@@ -265,6 +273,7 @@ void StructuralLayer::process_image_token(const BToken &token) {
 
 void StructuralLayer::process_newline_token(const BToken &token) {
   auto newline_node = std::make_shared<MIGRNode>(MIGRNodeType::NEWLINE);
+  newline_node->loc_ = token.loc;
 
   if (!parent_stack_.empty()) {
     parent_stack_.top()->add_child(newline_node);

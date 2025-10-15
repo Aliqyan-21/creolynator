@@ -55,6 +55,7 @@ public:
   MIGRNodeType type_;
   std::string content_;
   std::unordered_map<std::string, std::string> metadata_;
+  size_t loc_;
 
   /* structural edges (tree) */
   std::vector<std::shared_ptr<MIGRNode>> children_;
