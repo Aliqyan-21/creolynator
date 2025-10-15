@@ -1,5 +1,6 @@
 #include "i_lexer.h"
 #include "globals.h"
+#include "utils.h"
 #include <iostream>
 
 std::vector<IToken> ILexer::tokenize(const std::string &input, size_t s_loc) {
@@ -277,21 +278,15 @@ void ILexer::handle_link_state(char c) {
 
     size_t pipe = content.find('|');
     if (pipe != std::string::npos) {
-      url = content.substr(0, pipe);
-      text = content.substr(pipe + 1);
+      url = trim(content.substr(0, pipe));
+      text = trim(content.substr(pipe + 1));
 
-      auto nested_tokens = recursive_tokenize(text, fmt_loc);
-
-      IToken link_token(InlineTokenType::LINK, loc, std::nullopt, url);
-      link_token.children = nested_tokens;
+      IToken link_token(InlineTokenType::LINK, loc, text, url);
       i_tokens.push_back(link_token);
     } else {
-      url = content;
+      url = trim(content);
 
-      IToken text_token(InlineTokenType::TEXT, fmt_loc, url);
-
-      IToken link_token(InlineTokenType::LINK, loc, std::nullopt, url);
-      link_token.children.push_back(text_token);
+      IToken link_token(InlineTokenType::LINK, loc, url, url);
       i_tokens.push_back(link_token);
     }
 
@@ -316,14 +311,12 @@ void ILexer::handle_image_state(char c) {
 
     size_t pipe = content.find('|');
     if (pipe != std::string::npos) {
-      url = content.substr(0, pipe);
-      alt = content.substr(pipe + 1);
+      url = trim(content.substr(0, pipe));
+      alt = trim(content.substr(pipe + 1));
     } else {
-      url = content;
+      url = trim(content);
       alt = "";
     }
-
-    auto nested_tokens = recursive_tokenize(alt, fmt_loc);
 
     IToken img_token(InlineTokenType::IMAGE, loc, alt, url);
     i_tokens.push_back(img_token);

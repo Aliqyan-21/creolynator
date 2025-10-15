@@ -33,8 +33,6 @@ void BLexer::b_tokenize() {
       read_horizonalrule();
     } else if (peek() == '{' && lookahead() == '{' && lookahead(2) == '{') {
       read_verbatim();
-    } else if (peek() == '{' && lookahead() == '{') {
-      read_image();
     } else if (is_newline()) {
       read_blankline();
     } else {
@@ -274,8 +272,8 @@ void BLexer::process_inline_tokens() {
   for (auto &t : tokens) {
     if (t.text.has_value() && t.type != BlockTokenType::VERBATIMBLOCK) {
       t.i_tokens = i_lexer.tokenize(t.text.value(), t.loc);
-      _V_ << " [BLexer] Processed inline tokens for: " << t.text.value_or("[EMPTY]")
-          << std::endl;
+      _V_ << " [BLexer] Processed inline tokens for: "
+          << t.text.value_or("[EMPTY]") << std::endl;
     }
   }
 }
@@ -320,6 +318,5 @@ inline bool BLexer::is_whites() {
 
 inline bool BLexer::is_special() {
   return (peek() == '=' || peek() == '*' || peek() == '#' || peek() == '-' ||
-          (peek() == '{' && lookahead() == '{' && lookahead(2) == '{') ||
-          (peek() == '{' && lookahead() == '{'));
+          (peek() == '{' && lookahead() == '{' && lookahead(2) == '{'));
 }

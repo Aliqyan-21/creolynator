@@ -417,11 +417,14 @@ StructuralLayer::convert_i_tokens_to_migr_node(const IToken &i_token) {
   }
 
   /* for nested formatting we will recursively run the function */
-  for (const auto &child_token : i_token.children) {
-    auto child_node = convert_i_tokens_to_migr_node(child_token);
-    if (child_node) {
-      node->add_child(child_node);
-      add_node(child_node);
+  if (i_token.type != InlineTokenType::LINK &&
+      i_token.type != InlineTokenType::IMAGE) {
+    for (const auto &child_token : i_token.children) {
+      auto child_node = convert_i_tokens_to_migr_node(child_token);
+      if (child_node) {
+        node->add_child(child_node);
+        add_node(child_node);
+      }
     }
   }
 
