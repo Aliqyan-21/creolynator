@@ -85,7 +85,8 @@ void StructuralLayer::deserialize(std::istream &in) const {
 void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
   clear_errors();
 
-  _V_ << " [StructuralLayer] Building Structural Layer From Tokens..." << std::endl;
+  _V_ << " [StructuralLayer] Building Structural Layer From Tokens..."
+      << std::endl;
   for (size_t i{0}; i < tokens.size(); ++i) {
     const auto &token = tokens[i];
 
@@ -332,8 +333,8 @@ bool StructuralLayer::in_list_context() const { return !list_stack_.empty(); }
 
 void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
                                              const std::string &content) {
-  _V_ << " [StructuralLayer] Processing Inline Tokens for parent id: " << parent->id_ << "..."
-      << std::endl;
+  _V_ << " [StructuralLayer] Processing Inline Tokens for parent id: "
+      << parent->id_ << "..." << std::endl;
   if (content.empty()) {
     return;
   }
@@ -351,22 +352,67 @@ void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
     }
   }
 
-  _V_ << " [StructuralLayer] Inline Tokens Processed for parent id: " << parent->id_ << "."
-      << std::endl;
+  _V_ << " [StructuralLayer] Inline Tokens Processed for parent id: "
+      << parent->id_ << "." << std::endl;
 }
 
+/* Maps InlineTokenType to MigrNodeType */
 std::shared_ptr<MIGRNode>
 StructuralLayer::convert_i_tokens_to_migr_node(const IToken &i_token) {
-  /* TODO: it's just like processing the block tokens, and converting them to
-   * nodes, but this time we doing it in one function.
-   * - we will just have to handle different inline token types.
-   * - then according to the types, we will make nodes, with content
-   * - if node will have url, we will add it in metadata
-   * - for nested formatting we will have to process children too -> so we will
-   * make the function recursive ofc. */
-  SPEAK << "convert_i_tokens_to_migr_node not implemented yet, and was called"
-        << std::endl;
-  return nullptr;
+  _V_ << "Converting InlineTokenTypes to MigrNodeTypes..." << std::endl;
+  MIGRNodeType nt;
+  std::string content = i_token.content.value_or("");
+  std::string url = i_token.url.value_or("");
+
+  switch (i_token.type) {
+  case InlineTokenType::TEXT:
+    nt = MIGRNodeType::TEXT;
+    break;
+  case InlineTokenType::BOLD:
+    nt = MIGRNodeType::BOLD;
+    break;
+  case InlineTokenType::ITALIC:
+    nt = MIGRNodeType::ITALIC;
+    break;
+  case InlineTokenType::LINK:
+    nt = MIGRNodeType::LINK;
+    break;
+  case InlineTokenType::IMAGE:
+    nt = MIGRNodeType::IMAGE;
+    break;
+  case InlineTokenType::VERBATIM:
+    nt = MIGRNodeType::VERBATIM_INLINE;
+    break;
+  case InlineTokenType::LINEBREAK:
+    nt = MIGRNodeType::LINEBREAK;
+    break;
+  case InlineTokenType::ESCAPE:
+    // note: escape chars we treat as text
+    nt = MIGRNodeType::TEXT;
+    break;
+  default:
+    nt = MIGRNodeType::TEXT;
+    break;
+  }
+
+  auto node = std::make_shared<MIGRNode>(nt, content);
+
+  if (!url.empty() && (nt == MIGRNodeType::LINK || nt == MIGRNodeType::IMAGE)) {
+    node->metadata_["url"] = url;
+  }
+
+  /* for nested formatting we will recursively run the function */
+  for (const auto &child_token : i_token.children) {
+    auto child_node = convert_i_tokens_to_migr_node(child_token);
+    if (child_node) {
+      node->add_child(child_node);
+      add_node(child_node);
+    }
+  }
+
+  _V_ << "Converted InlineTokenTypes to MigrNodeTypes." << std::endl;
+
+  return node;
 }
 
 //------------------------------------------//
