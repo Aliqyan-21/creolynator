@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
   try {
     BLexer blexer(args.filename);
     blexer.b_tokenize();
-    blexer.process_inline_tokens();
+    // blexer.process_inline_tokens();
     blexer.print_tokens();
     StructuralLayer ll;
     ll.build_from_tokens(blexer.get_tokens());

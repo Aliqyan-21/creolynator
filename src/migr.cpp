@@ -1,4 +1,5 @@
 #include "migr.h"
+#include "globals.h"
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -23,6 +24,9 @@ void MIGRNode::add_child(std::shared_ptr<MIGRNode> child) {
   if (child) {
     children_.push_back(child);
     child->parent_ = shared_from_this();
+  } else {
+    _V_ << " [MIGRNode] [Warning] Child for id: " << shared_from_this()->id_
+        << "Was null when add_child was called on it" << std::endl;
   }
 }
 

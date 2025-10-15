@@ -1,10 +1,12 @@
 #include "i_lexer.h"
+#include "globals.h"
 #include <iostream>
 
 std::vector<IToken> ILexer::tokenize(const std::string &input, size_t s_loc) {
   /* heating the engine vroom...vrooooom */
   heat_the_engine(input, s_loc);
 
+  _V_ << " [ILexer] Starting Inline Tokenization..." << std::endl;
   while (!end()) {
     char c = inline_data[pos];
 
@@ -42,6 +44,7 @@ std::vector<IToken> ILexer::tokenize(const std::string &input, size_t s_loc) {
 
   finalize_current_text();
 
+  _V_ << " [ILexer] Inline Tokenization Ended." << std::endl;
   return i_tokens;
 }
 
@@ -120,6 +123,7 @@ std::vector<IToken> ILexer::recursive_tokenize(const std::string &input,
 
 /*=== Processing Functions ===*/
 void ILexer::handle_normal_state(char c) {
+  _V_ << " [ILexer] Current State: NORMAL." << std::endl;
   switch (c) {
   case '*':
     if (lookahead() == '*') {
@@ -214,6 +218,7 @@ void ILexer::handle_normal_state(char c) {
 }
 
 void ILexer::handle_bold_state(char c) {
+  _V_ << " [ILexer] Current State: IN_BOLD." << std::endl;
   if (c == '*' && lookahead() == '*') {
     if (!curr_text.empty()) {
       // recursively tokenizing the content for nested formatting
@@ -237,6 +242,7 @@ void ILexer::handle_bold_state(char c) {
 }
 
 void ILexer::handle_italic_state(char c) {
+  _V_ << " [ILexer] Current State: IN_ITALIC." << std::endl;
   if (c == '/' && lookahead() == '/') {
     if (!curr_text.empty()) {
       auto nested_tokens = recursive_tokenize(curr_text, fmt_loc);
@@ -259,6 +265,7 @@ void ILexer::handle_italic_state(char c) {
 }
 
 void ILexer::handle_link_state(char c) {
+  _V_ << " [ILexer] Current State: IN_LINK." << std::endl;
   if (c == ']' && lookahead() == ']') {
     // parsing link content here
     std::string content = curr_text;
@@ -297,6 +304,7 @@ void ILexer::handle_link_state(char c) {
 }
 
 void ILexer::handle_image_state(char c) {
+  _V_ << " [ILexer] Current State: IN_IMAGE." << std::endl;
   if (c == '}' && lookahead() == '}') {
     // parse image content
     std::string content = curr_text;
@@ -329,6 +337,7 @@ void ILexer::handle_image_state(char c) {
 }
 
 void ILexer::handle_verbatim_state(char c) {
+  _V_ << " [ILexer] Current State: IN_VERBATIM." << std::endl;
   if (c == '}' && lookahead() == '}' && lookahead(2) == '}') {
     add_token(InlineTokenType::VERBATIM, curr_text);
     curr_text.clear();
@@ -341,12 +350,14 @@ void ILexer::handle_verbatim_state(char c) {
 }
 
 void ILexer::handle_escape_state(char c) {
+  _V_ << " [ILexer] Current State: IN_ESCAPE." << std::endl;
   curr_text += c;
   curr_state = State::NORMAL;
 }
 
 /*=== Helper Functions ===*/
 void ILexer::heat_the_engine(const std::string &input, size_t s_loc) {
+  _V_ << " [ILexer] Heating The Engine..." << std::endl;
   i_tokens.clear();
   curr_text.clear();
   pos = 0;
@@ -356,6 +367,7 @@ void ILexer::heat_the_engine(const std::string &input, size_t s_loc) {
   fmt_pos = 0;
   fmt_loc = s_loc;
   fmt_stack.clear();
+  _V_ << " [ILexer] Engine Heated." << std::endl;
 }
 
 bool ILexer::end() { return pos >= inline_data.size(); }
@@ -387,6 +399,7 @@ void ILexer::add_token(InlineTokenType type, std::optional<std::string> content,
 }
 
 void ILexer::finalize_current_text() {
+  _V_ << " [ILexer] Finalizing Current State." << std::endl;
   if (!curr_text.empty()) {
     add_token(InlineTokenType::TEXT, curr_text);
     curr_text.clear();

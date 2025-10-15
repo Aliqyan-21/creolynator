@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "globals.h"
 #include <fstream>
 #include <iostream>
 
@@ -26,7 +27,28 @@ Args parse_args(int argc, char *argv[]) {
     exit(1);
   }
   Args args;
-  args.filename = argv[1];
+  bool ff{false};
+
+  for (int i{1}; i < argc; ++i) {
+    std::string arg = argv[i];
+    if ((arg == "--verbose" || arg == "-v") && i < argc) {
+      verbose = true;
+    } else if (arg.rfind("--", 0) == 0) {
+      std::cerr << "Unknown option: " << arg << "\n";
+      usage(argv[0]);
+      exit(1);
+    } else if (!ff) {
+      args.filename = arg;
+      ff = true;
+    }
+  }
+
+  if (!ff) {
+    std::cerr << "Missing required filename" << std::endl;
+    usage(argv[0]);
+    exit(1);
+  }
+
   return args;
 }
 

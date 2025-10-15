@@ -6,7 +6,7 @@
 inline bool verbose = true;
 
 /* output when verbose is true */
-#define VOUT                                                                   \
+#define _V_                                                                    \
   if (verbose)                                                                 \
   std::cerr << "[VERBOSE] "
 

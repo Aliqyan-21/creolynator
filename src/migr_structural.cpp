@@ -85,6 +85,7 @@ void StructuralLayer::deserialize(std::istream &in) const {
 void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
   clear_errors();
 
+  _V_ << " [StructuralLayer] Building Structural Layer From Tokens..." << std::endl;
   for (size_t i{0}; i < tokens.size(); ++i) {
     const auto &token = tokens[i];
 
@@ -141,11 +142,13 @@ void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
   while (in_list_context()) {
     list_stack_.pop();
   }
+  _V_ << " [StructuralLayer] Structural Layer Built." << std::endl;
 }
 
 std::shared_ptr<MIGRNode> StructuralLayer::get_root() const { return root_; }
 
 void StructuralLayer::process_heading_token(const BToken &token) {
+  _V_ << " [StructuralLayer] Creating Heading Node." << std::endl;
   int level{1}; // default
 
   level = token.level.value_or(1);
@@ -168,6 +171,7 @@ void StructuralLayer::process_heading_token(const BToken &token) {
 }
 
 void StructuralLayer::process_paragraph_token(const BToken &token) {
+  _V_ << " [StructuralLayer] Creating Paragraph Node." << std::endl;
   auto para_node = std::make_shared<MIGRNode>(MIGRNodeType::PARAGRAPH,
                                               token.text.value_or(""));
 
@@ -183,6 +187,7 @@ void StructuralLayer::process_paragraph_token(const BToken &token) {
 }
 
 void StructuralLayer::process_ulist_token(const BToken &token) {
+  _V_ << " [StructuralLayer] Creating Unordered List Node." << std::endl;
   int level = token.level.value_or(1);
 
   while ((int)list_stack_.size() > level) {
@@ -210,6 +215,7 @@ void StructuralLayer::process_ulist_token(const BToken &token) {
 }
 
 void StructuralLayer::process_olist_token(const BToken &token) {
+  _V_ << " [StructuralLayer] Creating Ordered List Node." << std::endl;
   int level = token.level.value_or(1);
 
   while ((int)list_stack_.size() > level) {
@@ -237,6 +243,7 @@ void StructuralLayer::process_olist_token(const BToken &token) {
 }
 
 void StructuralLayer::process_horizontal_rule_token(const BToken &token) {
+  _V_ << " [StructuralLayer] Creating Horizontal Rule Node." << std::endl;
   auto hr_node = std::make_shared<MIGRNode>(MIGRNodeType::HORIZONTAL_RULE);
   hr_node->loc_ = token.loc;
 
@@ -248,6 +255,7 @@ void StructuralLayer::process_horizontal_rule_token(const BToken &token) {
 }
 
 void StructuralLayer::process_verbatim_token(const BToken &token) {
+  _V_ << " [StructuralLayer] Creating Verbatim Node." << std::endl;
   auto verb_node = std::make_shared<MIGRNode>(MIGRNodeType::VERBATIM_BLOCK,
                                               token.text.value_or(""));
   verb_node->loc_ = token.loc;
@@ -260,6 +268,7 @@ void StructuralLayer::process_verbatim_token(const BToken &token) {
 }
 
 void StructuralLayer::process_image_token(const BToken &token) {
+  _V_ << " [StructuralLayer] Creating Image Node." << std::endl;
   auto image_node =
       std::make_shared<MIGRNode>(MIGRNodeType::IMAGE, token.text.value_or(""));
   image_node->loc_ = token.loc;
@@ -272,6 +281,7 @@ void StructuralLayer::process_image_token(const BToken &token) {
 }
 
 void StructuralLayer::process_newline_token(const BToken &token) {
+  _V_ << " [StructuralLayer] Creating Newline Node." << std::endl;
   auto newline_node = std::make_shared<MIGRNode>(MIGRNodeType::NEWLINE);
   newline_node->loc_ = token.loc;
 
@@ -322,9 +332,14 @@ bool StructuralLayer::in_list_context() const { return !list_stack_.empty(); }
 
 void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
                                              const std::string &content) {
+  _V_ << " [StructuralLayer] Processing Inline Tokens for parent id: " << parent->id_ << "..."
+      << std::endl;
   if (content.empty()) {
     return;
   }
+  /* NOTE: we can use BLexer::process_inline_tokens but I am letting it be a
+   * isolated feature of our lexer and here we will be independently
+   * construting inline tokens */
   ILexer i_lexer;
   auto i_tokens = i_lexer.tokenize(content, parent->loc_);
 
@@ -335,6 +350,9 @@ void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
       add_node(inline_node);
     }
   }
+
+  _V_ << " [StructuralLayer] Inline Tokens Processed for parent id: " << parent->id_ << "."
+      << std::endl;
 }
 
 std::shared_ptr<MIGRNode>
