@@ -64,6 +64,8 @@ private:
   /* inline processing */
   void process_inline_content(std::shared_ptr<MIGRNode> parent,
                               const std::string &content);
+  std::shared_ptr<MIGRNode>
+  convert_i_tokens_to_migr_node(const IToken &i_token);
 
   /* Error Handling */
   void handle_error(const std::string &message, size_t line);

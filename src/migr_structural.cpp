@@ -325,12 +325,30 @@ void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
   if (content.empty()) {
     return;
   }
+  ILexer i_lexer;
+  auto i_tokens = i_lexer.tokenize(content, parent->loc_);
 
-  // NOTE: this is just for now testing block types
-  // TODO: we will use inline tokens (ILexer) originally ofc
-  auto text_node = std::make_shared<MIGRNode>(MIGRNodeType::TEXT, content);
-  parent->add_child(text_node);
-  add_node(text_node);
+  for (const auto &i_token : i_tokens) {
+    auto inline_node = convert_i_tokens_to_migr_node(i_token);
+    if (inline_node) {
+      parent->add_child(inline_node);
+      add_node(inline_node);
+    }
+  }
+}
+
+std::shared_ptr<MIGRNode>
+StructuralLayer::convert_i_tokens_to_migr_node(const IToken &i_token) {
+  /* TODO: it's just like processing the block tokens, and converting them to
+   * nodes, but this time we doing it in one function.
+   * - we will just have to handle different inline token types.
+   * - then according to the types, we will make nodes, with content
+   * - if node will have url, we will add it in metadata
+   * - for nested formatting we will have to process children too -> so we will
+   * make the function recursive ofc. */
+  SPEAK << "convert_i_tokens_to_migr_node not implemented yet, and was called"
+        << std::endl;
+  return nullptr;
 }
 
 //------------------------------------------//
