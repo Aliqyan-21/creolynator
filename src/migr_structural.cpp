@@ -41,7 +41,8 @@ StructuralLayer::query_nodes(std::function<bool(const MIGRNode &)> predicate) {
 }
 
 void StructuralLayer::serialize(std::ostream &out) const {
-  // NOTE: a very simple json like serialization
+  // NOTE: a very simple json like serialization, in future let's use a json
+  // library to make it better
   out << "{\n";
   out << "  \"structural_layer\": {\n";
   out << "    \"root\": \"" << root_->id_ << "\",\n";
@@ -58,6 +59,20 @@ void StructuralLayer::serialize(std::ostream &out) const {
     out << "      \"" << node->id_ << "\": {\n";
     out << "        \"type\": " << static_cast<int>(node->type_) << ",\n";
     out << "        \"content\": \"" << node->content_ << "\",\n";
+
+    if (!node->metadata_.empty()) {
+      out << "        \"metadata\": {";
+      bool first_meta = true;
+      for (const auto &meta_pair : node->metadata_) {
+        if (!first_meta) {
+          out << ", ";
+        }
+        first_meta = false;
+        out << "\"" << meta_pair.first << "\": \"" << meta_pair.second << "\"";
+      }
+      out << "},\n";
+    }
+
     out << "        \"children\": [";
 
     bool first_child = true;
