@@ -2,11 +2,11 @@
 #define MIGR_SEMANTIC_H
 
 #include "migr.h"
-#include <unordered_map>
+#include "migr_structural.h"
 
 class SemanticLayer : public MIGRGraphLayer {
 public:
-  SemanticLayer() = default;
+  SemanticLayer();
 
   /* MIGR Graph Interface */
   void add_node(std::shared_ptr<MIGRNode> node) override;
@@ -17,9 +17,12 @@ public:
   void deserialize(std::istream &in) const override;
 
 private:
-  std::unordered_map<std::string, std::shared_ptr<MIGRNode>> semantic_nodes_;
-  std::unordered_map<std::string, std::vector<std::string>> edges_;
-  std::unordered_map<std::string, std::vector<std::string>> backlinks_;
+  std::unordered_map<std::string, std::shared_ptr<MIGRNode>>
+      semantic_nodes_; // [id : node]
+  std::unordered_map<std::string, std::vector<std::string>>
+      edges_; // [source : targets]
+  std::unordered_map<std::string, std::vector<std::string>>
+      backlinks_; // [source : targets]
 };
 
 #endif //! MIGR_SEMANTIC_H
