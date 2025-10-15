@@ -1,6 +1,7 @@
 #include "migr_semantic.h"
 #include "globals.h"
 #include <algorithm>
+#include <memory>
 
 void SemanticLayer::add_node(std::shared_ptr<MIGRNode> node) {
   if (node) {
@@ -57,12 +58,17 @@ void SemanticLayer::deserialize(std::istream &in) const {
 }
 
 void SemanticLayer::extract_semantics(const StructuralLayer &structural) {
+  _V_ << "Extracting semantic info..." << std::endl;
+
   auto root = structural.get_root();
-  if (root) {
-    extract_links(root);
-    extract_tags(root);
-    build_backlinks();
+  if (!root) {
+    _V_ << "No root node found while extracting semantics!" << std::endl;
+    return;
   }
+
+  extract_links(root);
+  extract_tags(root);
+  build_backlinks();
 }
 
 void SemanticLayer::add_cross_reference(const std::string &from_id,
@@ -70,7 +76,12 @@ void SemanticLayer::add_cross_reference(const std::string &from_id,
                                         const std::string &relation_type) {
   edges_[from_id].push_back(to_id);
   backlinks_[to_id].push_back(from_id);
-  // note: we can use relation type but don't know how?
+
+  /* we can store relation type in metadata */
+  auto from_it = semantic_nodes_.find(from_id);
+  if (from_it != semantic_nodes_.end()) {
+    from_it->second->metadata_["relation_type"] = relation_type;
+  }
 }
 
 std::vector<std::shared_ptr<MIGRNode>>
@@ -89,19 +100,66 @@ SemanticLayer::find_backlinks(const std::string &target_id) {
 }
 
 void SemanticLayer::extract_links(std::shared_ptr<MIGRNode> node) {
-  // todo: implement
-  // for now I can think of:
-  // - have to look for link patterns in content '[[link]]'.
-  // - then if found matches, then create a reference node.
-  // - and if node will have children then we can recursively link in them.
+  if (!node) {
+    return;
+  }
+
+  if (node->type_ == MIGRNodeType::LINK) {
+    std::string target_url = node->metadata_["url"];
+
+    /* a reference semantic node */
+    auto ref_node =
+        std::make_shared<MIGRNode>(MIGRNodeType::REFERENCE, target_url);
+    ref_node->metadata_["source_node"] = node->id_;
+    ref_node->metadata_["target"] = target_url;
+
+    add_node(ref_node);
+
+    // linking by creating edge link_node -> ref_node
+    add_cross_reference(node->id_, ref_node->id_, "references");
+
+    /* if link is internal, considering links not starting with 'http/https' */
+    if (target_url.find("http://") != 0 && target_url.find("https://") != 0) {
+      // internal wiki-link
+      ref_node->metadata_["link_type"] = "internal";
+
+      /* backlink resolution (cross document)
+       * format: target_document -> list of source nodes */
+      backlinks_[target_url].push_back(node->id_);
+    } else {
+      ref_node->metadata_["link_type"] = "external";
+    }
+  }
+
+  // recursively processing the children
+  for (const auto &child : node->children_) {
+    extract_links(child);
+  }
 }
 
 void SemanticLayer::extract_tags(std::shared_ptr<MIGRNode> node) {
-  // todo: implement
-  // for now I can think of:
-  // - have to look for tag patterns in content '#tag'.
-  // - then if found matches, then create a tag node.
-  // - and if node will have children then we can recursively link in them.
+  if (!node)
+    return;
+
+  // let's do this: tag will be like this [[#tag]] Creole-style tag links
+  if (node->type_ == MIGRNodeType::LINK && !node->metadata_["url"].empty()) {
+    std::string url = node->metadata_["url"];
+    if (url.length() > 0 && url[0] == '#') {
+      std::string tag_name = url.substr(1); // Remove #
+
+      auto tag_node = std::make_shared<MIGRNode>(MIGRNodeType::TAG, tag_name);
+      tag_node->metadata_["tag_name"] = tag_name;
+      tag_node->metadata_["source_node"] = node->id_;
+
+      add_node(tag_node);
+      add_cross_reference(node->id_, tag_node->id_, "tagged_with");
+    }
+  }
+
+  // recursively processing the children
+  for (const auto &child : node->children_) {
+    extract_tags(child);
+  }
 }
 
 void SemanticLayer::build_backlinks() {
