@@ -6,22 +6,25 @@
 
 class SemanticLayer : public MIGRGraphLayer {
 public:
-  SemanticLayer();
+  SemanticLayer() = default;
 
   /* MIGR Graph Interface */
   void add_node(std::shared_ptr<MIGRNode> node) override;
   void remove_node(const std::string &node_id) override;
   std::vector<std::shared_ptr<MIGRNode>>
-  query_nodes(std::function<bool(const MIGRNode &)> predicate) override;
+  query_nodes(std::function<bool(const MIGRNode &)> predicate) const override;
   void serialize(std::ostream &out) const override;
   void deserialize(std::istream &in) const override;
 
   /* Semantic Operations */
   void extract_semantics(const StructuralLayer &structural);
-  void add_cross_reference(const std::string &from_id, const std::string &to_id,
-                           const std::string &relation_type);
+  void add_semantic_edge(const std::string &from_id, const std::string &to_id,
+                         const std::string &relation_type);
   std::vector<std::shared_ptr<MIGRNode>>
   find_backlinks(const std::string &target_id);
+  std::vector<std::shared_ptr<MIGRNode>> search_tag(const std::string &tag);
+  std::vector<std::shared_ptr<MIGRNode>>
+  find_all_links_to_target(const std::string &target_name);
 
 private:
   std::unordered_map<std::string, std::shared_ptr<MIGRNode>>
@@ -35,6 +38,10 @@ private:
   void extract_links(std::shared_ptr<MIGRNode> node);
   void extract_tags(std::shared_ptr<MIGRNode> node);
   void build_backlinks();
+
+  /* Node Management */
+  std::string get_or_create_reference_node(const std::string &target);
+  std::string get_or_create_tag_node(const std::string &tag_name);
 };
 
 #endif //! MIGR_SEMANTIC_H
