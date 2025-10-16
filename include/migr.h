@@ -33,16 +33,12 @@ enum class MIGRNodeType {
   /* semantic */
   TAG,
   REFERENCE,
-  FOOTNOTE,
-  COMMENT,
-
-  /* across docs */
-  BACKLINK,
-  EXTERNAL_REF,
+  FOOTNOTE, // todo: for future
+  COMMENT,  // todo: for future
 };
 
 enum class MIGREdgeType {
-  STRUCTURAL_CHILD,
+  STRUCTURAL_CHILD, // note: not used but keep for future serailzation format
   SEMANTIC_LINK,
   BACKLINK,
   CROSS_REFERENCE,
