@@ -10,32 +10,66 @@ void SemanticLayer::add_node(std::shared_ptr<MIGRNode> node) {
 }
 
 void SemanticLayer::remove_node(const std::string &node_id) {
-  semantic_nodes_.erase(node_id);
-  edges_.erase(node_id);
-  backlinks_.erase(node_id);
-
-  for (auto &edge_pair : edges_) {
-    auto &edge_list = edge_pair.second;
-    edge_list.erase(std::remove(edge_list.begin(), edge_list.end(), node_id),
-                    edge_list.end());
+  auto it = semantic_nodes_.find(node_id);
+  if (it == semantic_nodes_.end()) {
+    return;
   }
+
+  auto node = it->second;
+
+  // now remove all edges involving this node.
+  edges_.erase(std::remove_if(edges_.begin(), edges_.end(),
+                              [&node_id](const SemanticEdge &e) {
+                                return e.source_id == node_id ||
+                                       e.target_id == node_id;
+                              }),
+               edges_.end());
+
+  // cleaning up semantic links in other nodes
+  for (auto &[id, n] : semantic_nodes_) {
+    if (n) {
+      n->semantic_links_.erase(
+          std::remove_if(n->semantic_links_.begin(), n->semantic_links_.end(),
+                         [&node](const std::shared_ptr<MIGRNode> &link) {
+                           return link && link->id_ == node->id_;
+                         }),
+          n->semantic_links_.end());
+    }
+  }
+
+  // cache clean
+  for (auto it{reference_cache_.begin()}; it != reference_cache_.end();) {
+    if (it->second == node_id) {
+      it = reference_cache_.erase(it);
+    } else {
+      it++;
+    }
+  }
+
+  // removing from storage
+  semantic_nodes_.erase(it);
+
+  build_backlink_index();
 }
 
 std::vector<std::shared_ptr<MIGRNode>> SemanticLayer::query_nodes(
     std::function<bool(const MIGRNode &)> predicate) const {
   std::vector<std::shared_ptr<MIGRNode>> query_results;
+  query_results.reserve(semantic_nodes_.size() / 2); // educated guess
+
   for (const auto &[_, node] : semantic_nodes_) {
     if (node && predicate(*node)) {
       query_results.push_back(node);
     }
   }
+
   return query_results;
 }
 
 void SemanticLayer::serialize(std::ostream &out) const {
   out << "  \"semantic_layer\": {\n";
 
-  // Serialize semantic nodes
+  // nodes
   out << "    \"semantic_nodes\": {\n";
   bool first_node = true;
   for (const auto &[id, node] : semantic_nodes_) {
@@ -60,29 +94,17 @@ void SemanticLayer::serialize(std::ostream &out) const {
   }
   out << "\n    },\n";
 
-  // Serialize edges
+  // and edges
   out << "    \"edges\": [\n";
   bool first_edge = true;
-  for (const auto &[source, targets] : edges_) {
-    for (const std::string &target : targets) {
-      if (!first_edge)
-        out << ",\n";
-      first_edge = false;
+  for (const auto &edge : edges_) {
+    if (!first_edge)
+      out << ",\n";
+    first_edge = false;
 
-      // Get relation type from source node's metadata
-      std::string relation_type = "SEMANTIC_LINK";
-      auto source_it = semantic_nodes_.find(source);
-      if (source_it != semantic_nodes_.end()) {
-        auto meta_it =
-            source_it->second->metadata_.find("relation_to_" + target);
-        if (meta_it != source_it->second->metadata_.end()) {
-          relation_type = meta_it->second;
-        }
-      }
-
-      out << "      {\"source\": \"" << source << "\", \"target\": \"" << target
-          << "\", \"type\": \"" << relation_type << "\"}";
-    }
+    out << "      {\"source\": \"" << edge.source_id << "\", \"target\": \""
+        << edge.target_id << "\", \"type\": \"" << edge.relation_label
+        << "\", \"edge_type\": " << static_cast<int>(edge.edge_type) << "}";
   }
   out << "\n    ]\n";
   out << "  }\n";
@@ -103,6 +125,8 @@ void SemanticLayer::extract_semantics(const StructuralLayer &structural) {
     return;
   }
 
+  reset();
+
   auto link_nodes = structural.query_nodes(
       [](const MIGRNode &node) { return node.type_ == MIGRNodeType::LINK; });
 
@@ -112,29 +136,30 @@ void SemanticLayer::extract_semantics(const StructuralLayer &structural) {
 
   extract_links(root);
   extract_tags(root);
-  build_backlinks();
+  build_backlink_index();
+
+  _V_ << " [SemanticLayer] Extraction complete. Total nodes: "
+      << semantic_nodes_.size() << ", Edges: " << edges_.size() << std::endl;
 }
 
-void SemanticLayer::add_semantic_edge(const std::string &from_id,
-                                      const std::string &to_id,
-                                      const std::string &relation_type) {
-  edges_[from_id].push_back(to_id);
+void SemanticLayer::add_semantic_edge(const std::shared_ptr<MIGRNode> &source,
+                                      const std::shared_ptr<MIGRNode> &target,
+                                      MIGREdgeType edge_type,
+                                      const std::string &relation_label) {
+  source->add_semantic_link(target);
 
-  /* we can store relation type in metadata */
-  auto from_it = semantic_nodes_.find(from_id);
-  if (from_it != semantic_nodes_.end()) {
-    std::string edge_key = "relation_to_" + to_id;
-    from_it->second->metadata_[edge_key] = relation_type;
-  }
+  edges_.push_back({source->id_, target->id_, edge_type, relation_label});
 }
 
 std::vector<std::shared_ptr<MIGRNode>>
 SemanticLayer::find_backlinks(const std::string &target_id) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
-  auto it = backlinks_.find(target_id);
-  if (it != backlinks_.end()) {
-    for (const std::string &bl_id : it->second) {
-      auto node_it = semantic_nodes_.find(bl_id);
+
+  auto it = backlink_index_.find(target_id);
+  if (it != backlink_index_.end()) {
+    results.reserve(it->second.size());
+    for (const std::string &src_id : it->second) {
+      auto node_it = semantic_nodes_.find(src_id);
       if (node_it != semantic_nodes_.end()) {
         results.push_back(node_it->second);
       }
@@ -151,7 +176,7 @@ SemanticLayer::search_tag(const std::string &tag) const {
     return node.type_ == MIGRNodeType::TAG && node.content_ == tag;
   });
 
-  for (auto tgn : tag_nodes) {
+  for (const auto &tgn : tag_nodes) {
     results.push_back(tgn);
     auto tgbs = find_backlinks(tgn->id_);
     results.insert(results.end(), tgbs.begin(), tgbs.end());
@@ -163,20 +188,22 @@ std::vector<std::shared_ptr<MIGRNode>>
 SemanticLayer::find_all_links_to_target(const std::string &target_name) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
 
-  auto ref_nodes = query_nodes([&](const MIGRNode &node) {
-    auto it = node.metadata_.find("target");
-    return node.type_ == MIGRNodeType::REFERENCE &&
-           it != node.metadata_.end() && it->second == target_name;
+  auto ref_nodes = query_nodes([&](const MIGRNode &n) {
+    if (n.type_ != MIGRNodeType::REFERENCE) {
+      return false;
+    }
+    auto it = n.metadata_.find("target");
+    return it != n.metadata_.end() && it->second == target_name;
   });
 
-  for (auto &ref : ref_nodes) {
+  for (const auto &ref : ref_nodes) {
     auto bls = find_backlinks(ref->id_);
     results.insert(results.end(), bls.begin(), bls.end());
   }
   return results;
 }
 
-void SemanticLayer::print_semantic_info(bool brief) const {
+void SemanticLayer::print_semantic_info(bool detailed) const {
   std::cout << "=== semantic info ===" << std::endl;
   std::cout << "Total Nodes: " << semantic_nodes_.size() << std::endl;
   std::cout << "Total Edges: " << edges_.size() << std::endl;
@@ -184,53 +211,70 @@ void SemanticLayer::print_semantic_info(bool brief) const {
   auto ref_nodes = query_nodes([](const MIGRNode &node) {
     return node.type_ == MIGRNodeType::REFERENCE;
   });
-
-  std::cout << "Reference nodes: " << ref_nodes.size() << std::endl;
-
   auto tag_nodes = query_nodes(
       [](const MIGRNode &node) { return node.type_ == MIGRNodeType::TAG; });
 
-  std::cout << tag_nodes.size();
+  std::cout << "Reference nodes: " << ref_nodes.size() << std::endl;
+  std::cout << "Tag Nodes: " << tag_nodes.size() << std::endl;
 
-  if (brief) {
-    std::cout << "=== more detailed ===" << std::endl;
-    for (auto &ref : ref_nodes) {
+  if (!detailed) {
+    return;
+  }
+
+  std::cout << "=== more detailed ===" << std::endl;
+  if (!ref_nodes.empty()) {
+    std::cout << "\n--- References ---" << std::endl;
+    for (const auto &ref : ref_nodes) {
       auto target_it = ref->metadata_.find("target");
+      auto type_it = ref->metadata_.find("link_type");
+
       std::string target =
           target_it != ref->metadata_.end() ? target_it->second : "[no target]";
-      auto type_it = ref->metadata_.find("link_type");
       std::string link_type =
           type_it != ref->metadata_.end() ? type_it->second : "[unknown]";
-      std::cout << "REF: " << ref->id_ << " -> '" << target << "' ("
+
+      std::cout << "\nREF: " << ref->id_ << " -> '" << target << "' ("
                 << link_type << ")" << std::endl;
 
-      auto bls = find_backlinks(ref->id_);
-
-      for (const auto &bl : bls) {
-        std::cout << "--- backlinks ---" << std::endl;
-        std::cout << bl->id_ << " <- " << bl->content_ << std::endl;
-        std::cout << "-----------------" << std::endl;
-      }
-    }
-    std::cout << std::endl;
-    for (auto &tag : tag_nodes) {
-      auto target_it = tag->metadata_.find("target");
-      std::string target =
-          target_it != tag->metadata_.end() ? target_it->second : "[no target]";
-      auto type_it = tag->metadata_.find("link_type");
-      std::string link_type =
-          type_it != tag->metadata_.end() ? type_it->second : "[unknown]";
-      std::cout << "TAG: " << tag->id_ << " -> '" << target << "' ("
-                << link_type << ")" << std::endl;
-
-      auto bls = find_backlinks(tag->id_);
-      for (const auto &bl : bls) {
-        std::cout << "--- backlinks ---" << std::endl;
-        std::cout << bl->id_ << " <- " << bl->content_ << std::endl;
-        std::cout << "-----------------" << std::endl;
+      auto backlinks = find_backlinks(ref->id_);
+      if (!backlinks.empty()) {
+        std::cout << "  Backlinks:" << std::endl;
+        for (const auto &bl : backlinks) {
+          std::cout << "    " << bl->id_ << " <- " << bl->content_ << std::endl;
+        }
       }
     }
   }
+
+  if (!tag_nodes.empty()) {
+    std::cout << "\n--- Tags ---" << std::endl;
+    for (const auto &tag : tag_nodes) {
+      auto tag_name_it = tag->metadata_.find("tag_name");
+      std::string tag_name = tag_name_it != tag->metadata_.end()
+                                 ? tag_name_it->second
+                                 : "[no name]";
+
+      std::cout << "\nTAG: " << tag->id_ << " -> '#" << tag_name << "'"
+                << std::endl;
+
+      auto backlinks = find_backlinks(tag->id_);
+      if (!backlinks.empty()) {
+        std::cout << "  Tagged by:" << std::endl;
+        for (const auto &bl : backlinks) {
+          std::cout << "    " << bl->id_ << " <- " << bl->content_ << std::endl;
+        }
+      }
+    }
+  }
+  std::cout << std::endl;
+}
+
+void SemanticLayer::reset() {
+  semantic_nodes_.clear();
+  edges_.clear();
+  backlink_index_.clear();
+  reference_cache_.clear();
+  tag_cache_.clear();
 }
 
 void SemanticLayer::extract_links(std::shared_ptr<MIGRNode> node) {
@@ -248,9 +292,10 @@ void SemanticLayer::extract_links(std::shared_ptr<MIGRNode> node) {
         return;
       }
 
-      std::string ref_id = get_or_create_reference_node(target_url);
+      auto ref_node = get_or_create_reference_node(target_url);
 
-      add_semantic_edge(node->id_, ref_id, "references");
+      add_semantic_edge(node, ref_node, MIGREdgeType::SEMANTIC_LINK,
+                        "references");
     }
   }
 
@@ -270,13 +315,14 @@ void SemanticLayer::extract_tags(std::shared_ptr<MIGRNode> node) {
     if (url_it != node->metadata_.end()) {
       std::string url = url_it->second;
 
-      // confirming that it is a tag link
+      // confirming that it is a tag link and processing
       if (!url.empty() && url[0] == '#') {
         std::string tag_name = url.substr(1);
 
-        std::string tag_id = get_or_create_tag_node(tag_name);
+        auto tag_node = get_or_create_tag_node(tag_name);
 
-        add_semantic_edge(node->id_, tag_id, "tagged_with");
+        add_semantic_edge(node, tag_node, MIGREdgeType::TAG_RELATION,
+                          "tagged_with");
       }
     }
   }
@@ -287,56 +333,61 @@ void SemanticLayer::extract_tags(std::shared_ptr<MIGRNode> node) {
   }
 }
 
-void SemanticLayer::build_backlinks() {
-  backlinks_.clear();
-  for (const auto &[source, targets] : edges_) {
-    for (const auto &target : targets) {
-      backlinks_[target].push_back(source);
-    }
+void SemanticLayer::build_backlink_index() {
+  backlink_index_.clear();
+  for (const auto &edge : edges_) {
+    backlink_index_[edge.target_id].push_back(edge.source_id);
   }
+}
+
+std::string SemanticLayer::classify_link_type(const std::string &target) const {
+  if (target.find("http://") == 0 || target.find("https://") == 0) {
+    return "external";
+  }
+  return "internal";
 }
 
 /* will prevent adding duplicate reference nodes, if node present just get it's
  * id, if not present then create and get it's id */
-std::string
+std::shared_ptr<MIGRNode>
 SemanticLayer::get_or_create_reference_node(const std::string &target) {
-  // checking if reference node already exist for this target
-  for (const auto &[id, node] : semantic_nodes_) {
-    if (node->type_ == MIGRNodeType::REFERENCE) {
-      auto it = node->metadata_.find("target");
-      if (it != node->metadata_.end() && it->second == target) {
-        return id;
-      }
+  // checking cache first
+  auto cache_it = reference_cache_.find(target);
+  if (cache_it != reference_cache_.end()) {
+    auto node_it = semantic_nodes_.find(cache_it->second);
+    if (node_it != semantic_nodes_.end()) {
+      return node_it->second;
     }
   }
 
-  // creating ref node
+  // creating new ref node
   auto ref_node = std::make_shared<MIGRNode>(MIGRNodeType::REFERENCE, target);
   ref_node->metadata_["target"] = target;
-
-  if (target.find("http://") == 0 || target.find("https://") == 0) {
-    ref_node->metadata_["link_type"] = "external";
-  } else {
-    ref_node->metadata_["link_type"] = "internal";
-  }
+  ref_node->metadata_["link_type"] = classify_link_type(target);
 
   add_node(ref_node);
-  return ref_node->id_;
+  reference_cache_[target] = ref_node->id_;
+
+  return ref_node;
 }
 
 /* will prevent adding duplicate tag nodes, if node present just get it's id, if
  * not present then create and get it's id */
-std::string SemanticLayer::get_or_create_tag_node(const std::string &tag_name) {
-  // checking if already exists
-  for (const auto &[id, node] : semantic_nodes_) {
-    if (node->type_ == MIGRNodeType::TAG && node->content_ == tag_name) {
-      return id;
+std::shared_ptr<MIGRNode>
+SemanticLayer::get_or_create_tag_node(const std::string &tag_name) {
+  // checking if already exists in cache
+  auto cache_it = tag_cache_.find(tag_name);
+  if (cache_it != tag_cache_.end()) {
+    auto node_it = semantic_nodes_.find(cache_it->second);
+    if (node_it != semantic_nodes_.end()) {
+      return node_it->second;
     }
   }
 
-  // creating new
+  // creating new tagnode
   auto tag_node = std::make_shared<MIGRNode>(MIGRNodeType::TAG, tag_name);
   tag_node->metadata_["tag_name"] = tag_name;
   add_node(tag_node);
-  return tag_node->id_;
+  tag_cache_[tag_name] = tag_node->id_;
+  return tag_node;
 }
