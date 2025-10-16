@@ -6,6 +6,12 @@
 #include "migr.h"
 #include <stack>
 
+/*
+Rules:
+- class and struct will be named in PascalCase
+- class member functions and members will be named in snake_case
+*/
+
 enum class RecoveryStrategy {
   SKIP,
   ATTACH_TO_PARENT,
@@ -31,7 +37,7 @@ public:
 
   /* Error Recovery */
   void set_recovery_stratgegy(RecoveryStrategy strategy);
-  const std::vector<MIGRError> &ger_errors();
+  const std::vector<MIGRError> &get_errors();
   void clear_errors();
 
 private:

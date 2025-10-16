@@ -7,7 +7,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include <memory>
+/*
+Rules:
+- class and struct will be named in PascalCase
+- class member functions and members will be named in snake_case
+*/
+
 enum class MIGRNodeType {
   /* structural */
   DOCUMENT_ROOT,

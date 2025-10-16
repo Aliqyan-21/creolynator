@@ -11,6 +11,12 @@ struct SemanticEdge {
   std::string relation_label; // "references", "tagged_with"
 };
 
+/*
+Rules:
+- class and struct will be named in PascalCase
+- class member functions and members will be named in snake_case
+*/
+
 class SemanticLayer : public MIGRGraphLayer {
 public:
   SemanticLayer() = default;

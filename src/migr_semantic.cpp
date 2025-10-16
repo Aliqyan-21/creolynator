@@ -3,12 +3,27 @@
 #include <algorithm>
 #include <memory>
 
+//--------------------------//
+//   MIGR Graph Interface   //
+//--------------------------//
+
+/*
+ * Adds a node to the semantic_nodes map keyed by node id.
+ * Meanwhile Ignoring null pointers.
+ */
 void SemanticLayer::add_node(std::shared_ptr<MIGRNode> node) {
   if (node) {
     semantic_nodes_[node->id_] = node;
   }
 }
 
+/*
+ * Removes a node identified by node_id from semantic_nodes.
+ * Also removes all edges connected to the node.
+ * Cleans up semantic links in other nodes pointing to this node.
+ * Clears references from the reference cache.
+ * Rebuilds the backlink index after removal.
+ */
 void SemanticLayer::remove_node(const std::string &node_id) {
   auto it = semantic_nodes_.find(node_id);
   if (it == semantic_nodes_.end()) {
@@ -52,6 +67,11 @@ void SemanticLayer::remove_node(const std::string &node_id) {
   build_backlink_index();
 }
 
+/*
+ * Takes a predicate (true/false) function as input
+ * Queries nodes by using that function.
+ * Returns a vector of shared_ptrs containing nodes matching the predicate.
+ */
 std::vector<std::shared_ptr<MIGRNode>> SemanticLayer::query_nodes(
     std::function<bool(const MIGRNode &)> predicate) const {
   std::vector<std::shared_ptr<MIGRNode>> query_results;
@@ -66,6 +86,11 @@ std::vector<std::shared_ptr<MIGRNode>> SemanticLayer::query_nodes(
   return query_results;
 }
 
+/*
+ * Serializes semantic_nodes and edges into JSON-like format.
+ * Includes node ids, types, contents, metadata, and edge source/target and
+ * relation details.
+ */
 void SemanticLayer::serialize(std::ostream &out) const {
   out << "  \"semantic_layer\": {\n";
 
@@ -110,12 +135,24 @@ void SemanticLayer::serialize(std::ostream &out) const {
   out << "  }\n";
 }
 
+/*
+ * fix: Currently unimplemented
+ */
 void SemanticLayer::deserialize(std::istream &in) const {
   // todo: implement deserialization of data - would implement
   // json parsing as data will be in json format
   SPEAK << "Deserialization is not implemented yet" << std::endl;
 }
 
+//-----------------------------//
+//     Semantic Operations     //
+//-----------------------------//
+
+/*
+ * Extracts semantic information from the provided StructuralLayer.
+ * Retrieves links -> [[link]] and tags -> [[#tag]], adds to semantic layer.
+ * Builds backlink index.
+ */
 void SemanticLayer::extract_semantics(const StructuralLayer &structural) {
   _V_ << "Extracting semantic info..." << std::endl;
 
@@ -142,6 +179,11 @@ void SemanticLayer::extract_semantics(const StructuralLayer &structural) {
       << semantic_nodes_.size() << ", Edges: " << edges_.size() << std::endl;
 }
 
+/*
+ * Adds a semantic edge between source and target nodes.
+ * Updates source node’s semantic links, so that this edge is there.
+ * Registers the edge with type and relation label.
+ */
 void SemanticLayer::add_semantic_edge(const std::shared_ptr<MIGRNode> &source,
                                       const std::shared_ptr<MIGRNode> &target,
                                       MIGREdgeType edge_type,
@@ -151,6 +193,10 @@ void SemanticLayer::add_semantic_edge(const std::shared_ptr<MIGRNode> &source,
   edges_.push_back({source->id_, target->id_, edge_type, relation_label});
 }
 
+/*
+ * Finds all nodes linking back to a target node by its id.
+ * It utilizes backlink index for efficient lookup.
+ */
 std::vector<std::shared_ptr<MIGRNode>>
 SemanticLayer::find_backlinks(const std::string &target_id) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
@@ -168,6 +214,11 @@ SemanticLayer::find_backlinks(const std::string &target_id) const {
   return results;
 }
 
+/*
+ * Searches for tag nodes matching a given tag string and their backlinks.
+ * Returns vector that has nodes with tag and also it has nodes referencing
+ * those tags.
+ */
 std::vector<std::shared_ptr<MIGRNode>>
 SemanticLayer::search_tag(const std::string &tag) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
@@ -184,6 +235,9 @@ SemanticLayer::search_tag(const std::string &tag) const {
   return results;
 }
 
+/*
+ * Finds all reference nodes targeting a given name and their backlinks.
+ */
 std::vector<std::shared_ptr<MIGRNode>>
 SemanticLayer::find_all_links_to_target(const std::string &target_name) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
@@ -203,6 +257,16 @@ SemanticLayer::find_all_links_to_target(const std::string &target_name) const {
   return results;
 }
 
+//-------------------//
+//   For Debugging   //
+//-------------------//
+
+/*
+ * Prints semantic summary which has info of:
+ * total nodes, edges, and counts of references and tags.
+ * If param detailed is true, then prints extended info
+ * about each reference and tag with backlinks.
+ */
 void SemanticLayer::print_semantic_info(bool detailed) const {
   std::cout << "=== semantic info ===" << std::endl;
   std::cout << "Total Nodes: " << semantic_nodes_.size() << std::endl;
@@ -269,6 +333,14 @@ void SemanticLayer::print_semantic_info(bool detailed) const {
   std::cout << std::endl;
 }
 
+//-------------------//
+//      Helpers      //
+//-------------------//
+
+/*
+ * Resets the semantic layer state by clearing nodes,
+ * edges, backlink index, and caches.
+ */
 void SemanticLayer::reset() {
   semantic_nodes_.clear();
   edges_.clear();
@@ -277,6 +349,11 @@ void SemanticLayer::reset() {
   tag_cache_.clear();
 }
 
+/*
+ * Recursively extracts semantic links from the given node.
+ * Processes LINK type nodes, skips tag links (starting with '#').
+ * Adds semantic edges from link nodes to reference nodes.
+ */
 void SemanticLayer::extract_links(std::shared_ptr<MIGRNode> node) {
   if (!node) {
     return;
@@ -305,6 +382,11 @@ void SemanticLayer::extract_links(std::shared_ptr<MIGRNode> node) {
   }
 }
 
+/*
+ * Recursively extracts tags from the given node.
+ * Processes LINK nodes with URLs starting with '#'.
+ * Adds semantic edges between the linking node and tag node.
+ */
 void SemanticLayer::extract_tags(std::shared_ptr<MIGRNode> node) {
   if (!node)
     return;
@@ -333,6 +415,10 @@ void SemanticLayer::extract_tags(std::shared_ptr<MIGRNode> node) {
   }
 }
 
+/*
+ * Builds backlink index mapping target node ids to source node ids.
+ * The created cache enables fast O(1) reverse lookup of backlinks.
+ */
 void SemanticLayer::build_backlink_index() {
   backlink_index_.clear();
   for (const auto &edge : edges_) {
@@ -340,6 +426,10 @@ void SemanticLayer::build_backlink_index() {
   }
 }
 
+/*
+ * Based on whether the target string starts with "http://" or "https://".
+ * It classifies a link target as "external" or "internal".
+ */
 std::string SemanticLayer::classify_link_type(const std::string &target) const {
   if (target.find("http://") == 0 || target.find("https://") == 0) {
     return "external";
@@ -347,8 +437,15 @@ std::string SemanticLayer::classify_link_type(const std::string &target) const {
   return "internal";
 }
 
-/* will prevent adding duplicate reference nodes, if node present just get it's
- * id, if not present then create and get it's id */
+//------------------------//
+//    Node Management     //
+//------------------------//
+
+/*
+ * Returns existing reference node for target if cached,
+ * otherwise creates new one.
+ * Then Caches that nodes to prevent duplicates.
+ */
 std::shared_ptr<MIGRNode>
 SemanticLayer::get_or_create_reference_node(const std::string &target) {
   // checking cache first
@@ -371,8 +468,11 @@ SemanticLayer::get_or_create_reference_node(const std::string &target) {
   return ref_node;
 }
 
-/* will prevent adding duplicate tag nodes, if node present just get it's id, if
- * not present then create and get it's id */
+/*
+ * Returns existing tag node for tag_name if cached,
+ * otherwise creates new one.
+ * Then Caches that nodes to prevent duplicates.
+ */
 std::shared_ptr<MIGRNode>
 SemanticLayer::get_or_create_tag_node(const std::string &tag_name) {
   // checking if already exists in cache

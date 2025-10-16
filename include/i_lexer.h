@@ -5,6 +5,12 @@
 #include <string>
 #include <vector>
 
+/*
+Rules:
+- class and struct will be named in PascalCase
+- class member functions and members will be named in snake_case
+*/
+
 enum class InlineTokenType {
   TEXT,
   BOLD,
@@ -48,7 +54,7 @@ private:
     IN_LINK,     // link in text
     IN_IMAGE,    // image link in text
     IN_VERBATIM, // unformatted inline text
-    IN_ESCAPE, // escaping a formatting
+    IN_ESCAPE,   // escaping a formatting
   };
 
   /* State Variables */
