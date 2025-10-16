@@ -21,7 +21,7 @@ public:
   void add_node(std::shared_ptr<MIGRNode> node) override;
   void remove_node(const std::string &node_id) override;
   std::vector<std::shared_ptr<MIGRNode>>
-  query_nodes(std::function<bool(const MIGRNode &)> predicate) override;
+  query_nodes(std::function<bool(const MIGRNode &)> predicate) const override;
   void serialize(std::ostream &out) const override;
   void deserialize(std::istream &in) const override;
 

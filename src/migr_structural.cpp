@@ -29,8 +29,8 @@ void StructuralLayer::remove_node(const std::string &node_id) {
   }
 }
 
-std::vector<std::shared_ptr<MIGRNode>>
-StructuralLayer::query_nodes(std::function<bool(const MIGRNode &)> predicate) {
+std::vector<std::shared_ptr<MIGRNode>> StructuralLayer::query_nodes(
+    std::function<bool(const MIGRNode &)> predicate) const {
   std::vector<std::shared_ptr<MIGRNode>> query_results;
   for (const auto &[_, node] : nodes_) {
     if (node && predicate(*node)) {

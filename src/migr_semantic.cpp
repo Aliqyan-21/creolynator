@@ -22,7 +22,7 @@ void SemanticLayer::remove_node(const std::string &node_id) {
 }
 
 std::vector<std::shared_ptr<MIGRNode>>
-SemanticLayer::query_nodes(std::function<bool(const MIGRNode &)> predicate) {
+SemanticLayer::query_nodes(std::function<bool(const MIGRNode &)> predicate) const {
   std::vector<std::shared_ptr<MIGRNode>> query_results;
   for (const auto &[_, node] : semantic_nodes_) {
     if (node && predicate(*node)) {
