@@ -22,6 +22,7 @@ set(SOURCES
     src/i_lexer.cpp
     src/migr.cpp
     src/migr_structural.cpp
+    src/migr_semantic.cpp
     src/main.cpp
 )
 
@@ -33,6 +34,7 @@ set(HEADERS
     include/i_lexer.h
     include/migr.h
     include/migr_structural.h
+    include/migr_semantic.h
 )
 
 # Function to add target

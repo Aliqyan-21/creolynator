@@ -12,14 +12,28 @@ MIGRNode::MIGRNode(MIGRNodeType type, const std::string &c)
   update_hash();
 }
 
+/*
+ * generates id in format node_${id} and increments the id
+ */
 void MIGRNode::generate_id() { id_ = "node_" + std::to_string(next_id_++); }
 
+/*
+ * Recomputes the content hash of this node.
+ * Combines the node's content with its type and hashes the result.
+ * Used in our code for detecting changes/versioning.
+ * note: not perfect yet, does not use perfect hashing
+ */
 void MIGRNode::update_hash() {
   std::hash<std::string> hasher;
   content_hash_ = std::to_string(
       hasher(content_ + std::to_string(static_cast<int>(type_))));
 }
 
+/*
+ * Adds a child node to this node.
+ * If the child pointer is valid, it appends to the children list and sets this
+ * node as the parent.
+ */
 void MIGRNode::add_child(std::shared_ptr<MIGRNode> child) {
   if (child) {
     children_.push_back(child);
@@ -30,6 +44,10 @@ void MIGRNode::add_child(std::shared_ptr<MIGRNode> child) {
   }
 }
 
+/*
+ * Adds a semantic link (reference, node, etc) to another node.
+ * Adds the target only if it is not already linked.
+ */
 void MIGRNode::add_semantic_link(std::shared_ptr<MIGRNode> target) {
   if (target && std::find(semantic_links_.begin(), semantic_links_.end(),
                           target) == semantic_links_.end()) {
@@ -37,6 +55,10 @@ void MIGRNode::add_semantic_link(std::shared_ptr<MIGRNode> target) {
   }
 }
 
+/*
+ * Removes a child node based on its ID.
+ * Searches the children list and removes any node matching the given ID.
+ */
 void MIGRNode::remove_child(const std::string &child_id) {
   children_.erase(
       std::remove_if(children_.begin(), children_.end(),
@@ -46,6 +68,10 @@ void MIGRNode::remove_child(const std::string &child_id) {
       children_.end());
 }
 
+/*
+ * Finds a direct child node by ID.
+ * Returns a shared_ptr to the child if found, otherwise nullptr.
+ */
 std::shared_ptr<MIGRNode> MIGRNode::find_child(const std::string &id) {
   for (auto &child : children_) {
     if (child && child->id_ == id) {
@@ -55,6 +81,10 @@ std::shared_ptr<MIGRNode> MIGRNode::find_child(const std::string &id) {
   return nullptr;
 }
 
+/*
+ * Updates the content of the node if it has changed.
+ * Increments the version counter and updates the content hash accordingly.
+ */
 void MIGRNode::update_content(const std::string &new_content) {
   if (content_ != new_content) {
     content_ = new_content;
@@ -63,6 +93,11 @@ void MIGRNode::update_content(const std::string &new_content) {
   }
 }
 
+/*
+ * Creates a human-readable string summary for the node.
+ * Shows id, type, location, content, counts of children, semantic
+ * links, and version.
+ */
 std::string MIGRNode::to_string() const {
   std::ostringstream oss;
   oss << "MIGRNode:\n"
@@ -80,6 +115,11 @@ std::string MIGRNode::to_string() const {
   return oss.str();
 }
 
+/*
+ * Recursively prints this node and its children in a tree format.
+ * Indents output according to depth to visualize hierarchy.
+ * todo: maybe make it generic to be used by any output stream
+ */
 void MIGRNode::print_tree(int depth) const {
   std::string indent(depth + 2, ' ');
   std::cout << indent << "- " << to_string() << std::endl;

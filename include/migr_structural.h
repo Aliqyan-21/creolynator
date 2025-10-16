@@ -6,6 +6,12 @@
 #include "migr.h"
 #include <stack>
 
+/*
+Rules:
+- class and struct will be named in PascalCase
+- class member functions and members will be named in snake_case
+*/
+
 enum class RecoveryStrategy {
   SKIP,
   ATTACH_TO_PARENT,
@@ -21,7 +27,7 @@ public:
   void add_node(std::shared_ptr<MIGRNode> node) override;
   void remove_node(const std::string &node_id) override;
   std::vector<std::shared_ptr<MIGRNode>>
-  query_nodes(std::function<bool(const MIGRNode &)> predicate) override;
+  query_nodes(std::function<bool(const MIGRNode &)> predicate) const override;
   void serialize(std::ostream &out) const override;
   void deserialize(std::istream &in) const override;
 
@@ -31,7 +37,7 @@ public:
 
   /* Error Recovery */
   void set_recovery_stratgegy(RecoveryStrategy strategy);
-  const std::vector<MIGRError> &ger_errors();
+  const std::vector<MIGRError> &get_errors();
   void clear_errors();
 
 private:

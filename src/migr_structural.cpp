@@ -11,12 +11,26 @@ StructuralLayer::StructuralLayer()
   parent_stack_.push(root_);
 }
 
+//--------------------------//
+//   MIGR Graph Interface   //
+//--------------------------//
+
+/*
+ * Adds a node to the nodes_ map.
+ * Inserts or overwrites based on node's unique id.
+ * Does nothing if the node pointer is null.
+ */
 void StructuralLayer::add_node(std::shared_ptr<MIGRNode> node) {
   if (node) {
     nodes_[node->id_] = node;
   }
 }
 
+/*
+ * Removes a node by id from nodes_ map.
+ * If node exists, removes it from its parent’s children list if any.
+ * Then erases node from the internal nodes map.
+ */
 void StructuralLayer::remove_node(const std::string &node_id) {
   auto it = nodes_.find(node_id);
   if (it != nodes_.end()) {
@@ -29,8 +43,13 @@ void StructuralLayer::remove_node(const std::string &node_id) {
   }
 }
 
-std::vector<std::shared_ptr<MIGRNode>>
-StructuralLayer::query_nodes(std::function<bool(const MIGRNode &)> predicate) {
+/*
+ * Takes a predicate (true/false) function as input
+ * Queries nodes by using that function.
+ * Returns a vector of shared_ptrs containing nodes matching the predicate.
+ */
+std::vector<std::shared_ptr<MIGRNode>> StructuralLayer::query_nodes(
+    std::function<bool(const MIGRNode &)> predicate) const {
   std::vector<std::shared_ptr<MIGRNode>> query_results;
   for (const auto &[_, node] : nodes_) {
     if (node && predicate(*node)) {
@@ -40,9 +59,13 @@ StructuralLayer::query_nodes(std::function<bool(const MIGRNode &)> predicate) {
   return query_results;
 }
 
+/*
+ * Serializes the StructuralLayer into a simplified JSON-like format.
+ * Outputs root id, each node’s type, content, metadata, and child
+ * relationships. NOTE: Currently uses manual serialization;
+ * TODO: replace with a JSON library for robustness.
+ */
 void StructuralLayer::serialize(std::ostream &out) const {
-  // NOTE: a very simple json like serialization, in future let's use a json
-  // library to make it better
   out << "{\n";
   out << "  \"structural_layer\": {\n";
   out << "    \"root\": \"" << root_->id_ << "\",\n";
@@ -91,12 +114,21 @@ void StructuralLayer::serialize(std::ostream &out) const {
   out << "}";
 }
 
+/*
+ * fix: Currently unimplemented.
+ */
 void StructuralLayer::deserialize(std::istream &in) const {
   // todo: implement deserialization of data - would implement
   // json parsing as data will be in json format
   SPEAK << "Deserialization is not implemented yet" << std::endl;
 }
 
+/*
+ * Constructs structural layer from a sequence of Block Tokens from our BLexer
+ * Processes tokens according to block types (headings, paragraphs, lists).
+ * Handles list context transitions and error recovery per configured strategy.
+ * Collects errors encountered during building
+ */
 void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
   clear_errors();
 
@@ -161,8 +193,22 @@ void StructuralLayer::build_from_tokens(const std::vector<BToken> &tokens) {
   _V_ << " [StructuralLayer] Structural Layer Built." << std::endl;
 }
 
+/*
+ * Returns root node of the StructuralLayer.
+ */
 std::shared_ptr<MIGRNode> StructuralLayer::get_root() const { return root_; }
 
+//-----------------------//
+//      Processors       //
+//-----------------------//
+
+/*
+ * Processes a heading token:
+ * Determines heading level, manages heading stack, creates a heading node with
+ * metadata. Adds it as a child to the current parent in the stack, and pushes
+ * it to the parent stack. And then processes inline content for the created
+ * node.
+ */
 void StructuralLayer::process_heading_token(const BToken &token) {
   _V_ << " [StructuralLayer] Creating Heading Node." << std::endl;
   int level{1}; // default
@@ -186,6 +232,11 @@ void StructuralLayer::process_heading_token(const BToken &token) {
   process_inline_content(heading_node, token.text.value_or(""));
 }
 
+/*
+ * Processes a paragraph token:
+ * Creates a paragraph node, adds it as child to current top parent.
+ * And then processes inline content for the created node.
+ */
 void StructuralLayer::process_paragraph_token(const BToken &token) {
   _V_ << " [StructuralLayer] Creating Paragraph Node." << std::endl;
   auto para_node = std::make_shared<MIGRNode>(MIGRNodeType::PARAGRAPH,
@@ -202,6 +253,12 @@ void StructuralLayer::process_paragraph_token(const BToken &token) {
   process_inline_content(para_node, token.text.value_or(""));
 }
 
+/*
+ * Processes an unordered list token:
+ * Manages the list context stack depth according to list level.
+ * Creates a ULIST_ITEM node, adds it as child.
+ * and then process inline tokens.
+ */
 void StructuralLayer::process_ulist_token(const BToken &token) {
   _V_ << " [StructuralLayer] Creating Unordered List Node." << std::endl;
   int level = token.level.value_or(1);
@@ -230,6 +287,10 @@ void StructuralLayer::process_ulist_token(const BToken &token) {
   process_inline_content(list_item_node, token.text.value_or(""));
 }
 
+/*
+ * Processes an ordered list (OLIST) token:
+ * Similar handling as unordered lists but for OLIST and OLIST_ITEM types.
+ */
 void StructuralLayer::process_olist_token(const BToken &token) {
   _V_ << " [StructuralLayer] Creating Ordered List Node." << std::endl;
   int level = token.level.value_or(1);
@@ -258,6 +319,10 @@ void StructuralLayer::process_olist_token(const BToken &token) {
   process_inline_content(list_item_node, token.text.value_or(""));
 }
 
+/*
+ * Processes a horizontal rule token:
+ * Creates a horizontal rule node and attaches it to current parent.
+ */
 void StructuralLayer::process_horizontal_rule_token(const BToken &token) {
   _V_ << " [StructuralLayer] Creating Horizontal Rule Node." << std::endl;
   auto hr_node = std::make_shared<MIGRNode>(MIGRNodeType::HORIZONTAL_RULE);
@@ -270,6 +335,10 @@ void StructuralLayer::process_horizontal_rule_token(const BToken &token) {
   add_node(hr_node);
 }
 
+/*
+ * Processes a verbatim block token:
+ * Creates a verbatim block node, attaches to parent, and adds to map.
+ */
 void StructuralLayer::process_verbatim_token(const BToken &token) {
   _V_ << " [StructuralLayer] Creating Verbatim Node." << std::endl;
   auto verb_node = std::make_shared<MIGRNode>(MIGRNodeType::VERBATIM_BLOCK,
@@ -283,6 +352,11 @@ void StructuralLayer::process_verbatim_token(const BToken &token) {
   add_node(verb_node);
 }
 
+/*
+ * Processes an image token:
+ * Creates an image node with associated text, attaches to current parent
+ * adds to map
+ */
 void StructuralLayer::process_image_token(const BToken &token) {
   _V_ << " [StructuralLayer] Creating Image Node." << std::endl;
   auto image_node =
@@ -296,6 +370,10 @@ void StructuralLayer::process_image_token(const BToken &token) {
   add_node(image_node);
 }
 
+/*
+ * Processes a newline token:
+ * Creates a newline node, attaches, and adds to map.
+ */
 void StructuralLayer::process_newline_token(const BToken &token) {
   _V_ << " [StructuralLayer] Creating Newline Node." << std::endl;
   auto newline_node = std::make_shared<MIGRNode>(MIGRNodeType::NEWLINE);
@@ -308,6 +386,14 @@ void StructuralLayer::process_newline_token(const BToken &token) {
   add_node(newline_node);
 }
 
+//---------------------------//
+//      Stack Management     //
+//---------------------------//
+
+/*
+ * Manages the heading stack by popping until appropriate parent for the heading
+ * level is found. Ensures proper nesting of headings in the structural tree.
+ */
 void StructuralLayer::manage_heading_stack(int heading_level) {
   // pop until find appropriate parent level
   while (parent_stack_.size() > 1) {
@@ -327,6 +413,10 @@ void StructuralLayer::manage_heading_stack(int heading_level) {
   }
 }
 
+/*
+ * Creates a list node, attaches it
+ * and pushes onto the list stack, and node map
+ */
 void StructuralLayer::enter_list_context(MIGRNodeType list_type) {
   auto list_node = std::make_shared<MIGRNode>(list_type);
 
@@ -338,14 +428,32 @@ void StructuralLayer::enter_list_context(MIGRNodeType list_type) {
   list_stack_.push(list_node);
 }
 
+/*
+ * Exits the current list context by popping from the list stack.
+ * Does nothing if not already in list context
+ */
 void StructuralLayer::exit_list_context() {
   if (in_list_context()) {
     list_stack_.pop();
   }
 }
 
+/*
+ * Checks if currently inside a list context by
+ * simply returning true if list stack is not empty.
+ */
 bool StructuralLayer::in_list_context() const { return !list_stack_.empty(); }
 
+//--------------------------//
+//     Inline Processing    //
+//--------------------------//
+
+/*
+ * Processes inline tokens for a given blockk token MIGR node node from provided
+ * text content. Uses our ILexer to generate inline tokens, converts them to
+ * MIGRNodes recursively, adds inline nodes as children under the parent, and to
+ * the node map.
+ */
 void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
                                              const std::string &content) {
   _V_ << " [StructuralLayer] Processing Inline Tokens for parent id: "
@@ -371,7 +479,13 @@ void StructuralLayer::process_inline_content(std::shared_ptr<MIGRNode> parent,
       << parent->id_ << "." << std::endl;
 }
 
-/* Maps InlineTokenType to MigrNodeType */
+/*
+ * Converts an IToken (inline token) into a MIGRNode.
+ * Maps inline token types to MIGRNodeTypes.
+ * Also handles URLs for links and images.
+ * It's a recursive function to convert and add children tokens
+ * (except for links/images)
+ */
 std::shared_ptr<MIGRNode>
 StructuralLayer::convert_i_tokens_to_migr_node(const IToken &i_token) {
   _V_ << "Converting InlineTokenTypes to MigrNodeTypes..." << std::endl;
@@ -437,18 +551,41 @@ StructuralLayer::convert_i_tokens_to_migr_node(const IToken &i_token) {
 //      Error Handling and Recovery         //
 //------------------------------------------//
 
+/*
+ * Public function to set the error recovery strategy for this StructuralLayer
+ * object to control behavior when parsing errors occur (skip, attach to
+ * parent, create placeholder).
+ */
 void StructuralLayer::set_recovery_stratgegy(RecoveryStrategy strategy) {
   recovery_strategy_ = strategy;
 }
 
-const std::vector<MIGRError> &StructuralLayer::ger_errors() { return errors_; }
+/*
+ * Returns a const reference to the vector of errors encountered during
+ * building strcutural layer from BTokens
+ */
+const std::vector<MIGRError> &StructuralLayer::get_errors() { return errors_; }
 
+/*
+ * Clears all recorded errors.
+ */
 void StructuralLayer::clear_errors() { errors_.clear(); }
 
+/*
+ * Handles a parsing or structural error by recording it with message and line.
+ */
 void StructuralLayer::handle_error(const std::string &message, size_t line) {
   errors_.emplace_back(message, line, "attempting recovery");
 }
 
+/*
+ * Attempts error recovery based on current recovery strategy.
+ * - SKIP: silently skips erroneous token.
+ * - ATTACH_TO_PARENT: creates a generic 'paragraph' node and attaches to
+ * current parent.
+ * - CREATE_PLACEHOLDER: creates a 'paragraph' node with placeholder text and
+ * attaches. Returns true if recovery was successful | otherwise false.
+ */
 bool StructuralLayer::attempt_recovery(const BToken &token) {
   switch (recovery_strategy_) {
   case RecoveryStrategy::SKIP:

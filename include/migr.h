@@ -7,7 +7,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include <memory>
+/*
+Rules:
+- class and struct will be named in PascalCase
+- class member functions and members will be named in snake_case
+*/
+
 enum class MIGRNodeType {
   /* structural */
   DOCUMENT_ROOT,
@@ -33,16 +38,12 @@ enum class MIGRNodeType {
   /* semantic */
   TAG,
   REFERENCE,
-  FOOTNOTE,
-  COMMENT,
-
-  /* across docs */
-  BACKLINK,
-  EXTERNAL_REF,
+  FOOTNOTE, // todo: for future
+  COMMENT,  // todo: for future
 };
 
 enum class MIGREdgeType {
-  STRUCTURAL_CHILD,
+  STRUCTURAL_CHILD, // note: not used but keep for future serailzation format
   SEMANTIC_LINK,
   BACKLINK,
   CROSS_REFERENCE,
@@ -94,7 +95,7 @@ public:
   virtual void add_node(std::shared_ptr<MIGRNode> node) = 0;
   virtual void remove_node(const std::string &node_id) = 0;
   virtual std::vector<std::shared_ptr<MIGRNode>>
-  query_nodes(std::function<bool(const MIGRNode &)> predicate) = 0;
+  query_nodes(std::function<bool(const MIGRNode &)> predicate) const = 0;
   virtual void serialize(std::ostream &out) const = 0;
   virtual void deserialize(std::istream &in) const = 0;
 };

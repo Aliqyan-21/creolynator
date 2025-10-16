@@ -1,0 +1,10 @@
+= Semantic Test Document =
+
+This document tests [[HomePage]] links and external links [[https://example.com|Example Site]].
+
+We also have tags: [[#important]] and [[#todo]].
+
+Another link to [[HomePage]] for testing backlinks.
+
+* List with [[InternalPage]] link
+* Another [[#important]] item

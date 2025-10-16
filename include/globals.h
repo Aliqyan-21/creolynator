@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-inline bool verbose = true;
+inline bool verbose = false;
 
 /* output when verbose is true */
 #define _V_                                                                    \
