@@ -21,10 +21,13 @@ public:
   void add_semantic_edge(const std::string &from_id, const std::string &to_id,
                          const std::string &relation_type);
   std::vector<std::shared_ptr<MIGRNode>>
-  find_backlinks(const std::string &target_id);
-  std::vector<std::shared_ptr<MIGRNode>> search_tag(const std::string &tag);
+  find_backlinks(const std::string &target_id) const;
+  std::vector<std::shared_ptr<MIGRNode>> search_tag(const std::string &tag) const;
   std::vector<std::shared_ptr<MIGRNode>>
-  find_all_links_to_target(const std::string &target_name);
+  find_all_links_to_target(const std::string &target_name) const;
+
+  /* for debuggin' */
+  void print_semantic_info(bool brief = false) const;
 
 private:
   std::unordered_map<std::string, std::shared_ptr<MIGRNode>>

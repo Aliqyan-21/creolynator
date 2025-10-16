@@ -92,7 +92,7 @@ void SemanticLayer::add_semantic_edge(const std::string &from_id,
 }
 
 std::vector<std::shared_ptr<MIGRNode>>
-SemanticLayer::find_backlinks(const std::string &target_id) {
+SemanticLayer::find_backlinks(const std::string &target_id) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
   auto it = backlinks_.find(target_id);
   if (it != backlinks_.end()) {
@@ -107,7 +107,7 @@ SemanticLayer::find_backlinks(const std::string &target_id) {
 }
 
 std::vector<std::shared_ptr<MIGRNode>>
-SemanticLayer::search_tag(const std::string &tag) {
+SemanticLayer::search_tag(const std::string &tag) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
 
   auto tag_nodes = query_nodes([&](const MIGRNode &node) {
@@ -123,7 +123,7 @@ SemanticLayer::search_tag(const std::string &tag) {
 }
 
 std::vector<std::shared_ptr<MIGRNode>>
-SemanticLayer::find_all_links_to_target(const std::string &target_name) {
+SemanticLayer::find_all_links_to_target(const std::string &target_name) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
 
   auto ref_nodes = query_nodes([&](const MIGRNode &node) {
@@ -137,6 +137,63 @@ SemanticLayer::find_all_links_to_target(const std::string &target_name) {
     results.insert(results.end(), bls.begin(), bls.end());
   }
   return results;
+}
+
+void SemanticLayer::print_semantic_info(bool brief) const {
+  std::cout << "=== semantic info ===" << std::endl;
+  std::cout << "Total Nodes: " << semantic_nodes_.size() << std::endl;
+  std::cout << "Total Edges: " << edges_.size() << std::endl;
+
+  auto ref_nodes = query_nodes([](const MIGRNode &node) {
+    return node.type_ == MIGRNodeType::REFERENCE;
+  });
+
+  std::cout << "Reference nodes: " << ref_nodes.size() << std::endl;
+
+  auto tag_nodes = query_nodes(
+      [](const MIGRNode &node) { return node.type_ == MIGRNodeType::TAG; });
+
+  std::cout << tag_nodes.size();
+
+  if (brief) {
+    std::cout << "=== more detailed ===" << std::endl;
+    for (auto &ref : ref_nodes) {
+      auto target_it = ref->metadata_.find("target");
+      std::string target =
+          target_it != ref->metadata_.end() ? target_it->second : "[no target]";
+      auto type_it = ref->metadata_.find("link_type");
+      std::string link_type =
+          type_it != ref->metadata_.end() ? type_it->second : "[unknown]";
+      std::cout << "REF: " << ref->id_ << " -> '" << target << "' ("
+                << link_type << ")" << std::endl;
+
+      auto bls = find_backlinks(ref->id_);
+
+      for (const auto &bl : bls) {
+        std::cout << "--- backlinks ---" << std::endl;
+        std::cout << bl->id_ << " <- " << bl->content_ << std::endl;
+        std::cout << "-----------------" << std::endl;
+      }
+    }
+    std::cout << std::endl;
+    for (auto &tag : tag_nodes) {
+      auto target_it = tag->metadata_.find("target");
+      std::string target =
+          target_it != tag->metadata_.end() ? target_it->second : "[no target]";
+      auto type_it = tag->metadata_.find("link_type");
+      std::string link_type =
+          type_it != tag->metadata_.end() ? type_it->second : "[unknown]";
+      std::cout << "TAG: " << tag->id_ << " -> '" << target << "' ("
+                << link_type << ")" << std::endl;
+
+      auto bls = find_backlinks(tag->id_);
+      for (const auto &bl : bls) {
+        std::cout << "--- backlinks ---" << std::endl;
+        std::cout << bl->id_ << " <- " << bl->content_ << std::endl;
+        std::cout << "-----------------" << std::endl;
+      }
+    }
+  }
 }
 
 void SemanticLayer::extract_links(std::shared_ptr<MIGRNode> node) {
