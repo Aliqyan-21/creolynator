@@ -34,17 +34,54 @@ std::vector<std::shared_ptr<MIGRNode>> SemanticLayer::query_nodes(
 
 void SemanticLayer::serialize(std::ostream &out) const {
   out << "  \"semantic_layer\": {\n";
-  out << "    \"edges\": [\n";
 
-  bool first{true};
+  // Serialize semantic nodes
+  out << "    \"semantic_nodes\": {\n";
+  bool first_node = true;
+  for (const auto &[id, node] : semantic_nodes_) {
+    if (!first_node)
+      out << ",\n";
+    first_node = false;
+
+    out << "      \"" << id << "\": {\n";
+    out << "        \"type\": " << static_cast<int>(node->type_) << ",\n";
+    out << "        \"content\": \"" << node->content_ << "\",\n";
+    out << "        \"metadata\": {";
+
+    bool first_meta = true;
+    for (const auto &[key, value] : node->metadata_) {
+      if (!first_meta)
+        out << ", ";
+      first_meta = false;
+      out << "\"" << key << "\": \"" << value << "\"";
+    }
+    out << "}\n";
+    out << "      }";
+  }
+  out << "\n    },\n";
+
+  // Serialize edges
+  out << "    \"edges\": [\n";
+  bool first_edge = true;
   for (const auto &[source, targets] : edges_) {
     for (const std::string &target : targets) {
-      if (!first) {
+      if (!first_edge)
         out << ",\n";
+      first_edge = false;
+
+      // Get relation type from source node's metadata
+      std::string relation_type = "SEMANTIC_LINK";
+      auto source_it = semantic_nodes_.find(source);
+      if (source_it != semantic_nodes_.end()) {
+        auto meta_it =
+            source_it->second->metadata_.find("relation_to_" + target);
+        if (meta_it != source_it->second->metadata_.end()) {
+          relation_type = meta_it->second;
+        }
       }
-      first = false;
+
       out << "      {\"source\": \"" << source << "\", \"target\": \"" << target
-          << "\", \"type\": \"SEMANTIC_LINK\"}";
+          << "\", \"type\": \"" << relation_type << "\"}";
     }
   }
   out << "\n    ]\n";
