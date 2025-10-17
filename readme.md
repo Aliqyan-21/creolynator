@@ -7,3 +7,8 @@
 <p><b>Something Is Cooking...</b></p>
 </div>
 
+---
+
+### The Creolynator MIGR Architecture
+
+**Learn more about it here** : [An Informal Introduction to MIGR](assets/migr_intro.pdf)
