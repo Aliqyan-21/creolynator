@@ -81,6 +81,7 @@ std::vector<std::shared_ptr<MIGRNode>> SemanticLayer::query_nodes(
  * relation details.
  */
 void SemanticLayer::serialize(std::ostream &out) const {
+  out << "{\n";
   out << "  \"semantic_layer\": {\n";
 
   // nodes
@@ -122,6 +123,7 @@ void SemanticLayer::serialize(std::ostream &out) const {
   }
   out << "\n    ]\n";
   out << "  }\n";
+  out << "}\n";
 }
 
 /*
