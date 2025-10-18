@@ -62,9 +62,6 @@ public:
   std::vector<std::shared_ptr<MIGRNode>> children_;
   std::weak_ptr<MIGRNode> parent_;
 
-  /* sementic edges (graph) */
-  std::vector<std::shared_ptr<MIGRNode>> semantic_links_;
-
   /* versioning */
   size_t version_{0};
   std::string content_hash_;
@@ -73,7 +70,6 @@ public:
 
   /* core operations */
   void add_child(std::shared_ptr<MIGRNode> child);
-  void add_semantic_link(std::shared_ptr<MIGRNode> target);
   void remove_child(const std::string &child_id);
   std::shared_ptr<MIGRNode> find_child(const std::string &id);
   void update_content(const std::string &new_content);

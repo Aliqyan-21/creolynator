@@ -42,6 +42,15 @@ public:
   std::vector<std::shared_ptr<MIGRNode>>
   find_all_links_to_target(const std::string &target_name) const;
 
+  /* Edge Query Operations */
+  std::vector<std::shared_ptr<MIGRNode>>
+  get_semantic_targets(const std::string &source_id) const;
+  std::vector<std::shared_ptr<MIGRNode>>
+  get_semantic_sources(const std::string &target_id) const;
+  std::vector<SemanticEdge>
+  get_edges_from_node(const std::string &node_id) const;
+  std::vector<SemanticEdge> get_edges_to_node(const std::string &node_id) const;
+
   /* for debuggin' */
   void print_semantic_info(bool detailed = false) const;
 
@@ -49,8 +58,11 @@ private:
   std::unordered_map<std::string, std::shared_ptr<MIGRNode>>
       semantic_nodes_;              // [id : node]
   std::vector<SemanticEdge> edges_; // efficient querying
-  std::unordered_map<std::string, std::vector<std::string>>
-      backlink_index_; // [target : sources]
+
+  std::unordered_map<std::string, std::vector<size_t>>
+      outgoing_edge_index_; // [node id : edge idx]
+  std::unordered_map<std::string, std::vector<size_t>>
+      incoming_edge_index_; // [node id : edge idx]
 
   /* Cache for reference nodes and tag nodes */
   std::unordered_map<std::string, std::string>
@@ -61,7 +73,7 @@ private:
   void reset();
   void extract_links(std::shared_ptr<MIGRNode> node);
   void extract_tags(std::shared_ptr<MIGRNode> node);
-  void build_backlink_index();
+  void build_edge_indexes();
   std::string classify_link_type(const std::string &target) const;
 
   /* Node Management */
