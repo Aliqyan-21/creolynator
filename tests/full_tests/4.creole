@@ -1,0 +1,146 @@
+= Comprehensive MIGR Test Document =
+
+== Structural Layer Tests ==
+
+=== Section 1: Basic Hierarchy ===
+
+This paragraph tests basic text content with **bold formatting** and //italic text// to verify inline processing works correctly.
+
+We can also test inline code like {{printf("hello")}} within paragraphs.
+
+=== Section 2: Links and References ===
+
+**Internal links (semantic):**
+* [[HomePage]] - basic internal reference
+* [[ProjectDashboard]] - another internal link for backlink tracking
+* [[HomePage]] - duplicate link to same target for testing deduplication
+
+**External links (semantic):**
+* [[https://example.com|Example Site]] - link with display text
+* [[https://github.com/aliqyan-21/creolynator]] - link to Creolynator repo
+* [[https://www.wikipedia.org/wiki/Knowledge_Graph|Wikipedia: Knowledge Graphs]]
+
+=== Section 3: Tagging System ===
+
+Content tagged with [[#important]] should be indexed semantically.
+
+Another tag test: [[#todo]] marks actionable items.
+
+Mixed tags in same block: [[#urgent]] and [[#backend]] and [[#important]] appear together.
+
+Duplicate tags: [[#important]] mentioned again, [[#important]] and again.
+
+=== Section 4: Unordered Lists ===
+
+* Simple list item
+* Item with **bold text** inside
+* Item with internal link [[PageA]]
+* Item with [[#project-x]] tag
+** Nested item level 2
+** Another nested with [[https://example.org|external link]]
+*** Deeply nested level 3
+*** With [[#nested-tag]]
+* Back to level 1
+* Final item
+
+=== Section 5: Ordered Lists ===
+
+# First ordered item
+## Second item with [[DocumentB]]
+### Item tagged with [[#sequence]] tag
+   * Mixed unordered inside ordered
+   * Another mixed item [[#mixed-tag]]
+#### Return to ordered
+   # Nested ordered
+   ## Second nested [[InternalRef]]
+##### Final ordered item
+
+=== Section 6: Verbatim Blocks ===
+
+Test code block:
+{{{
+function parse_creole(text) {
+    // Internal comment
+    let tokens = tokenize(text);
+    return build_ast(tokens);
+}
+}}}
+
+Another verbatim section with link-like content that should NOT be parsed:
+{{{
+This looks like a [[link]] but is inside verbatim so should be literal text
+URL: https://should-not-parse.com
+Tag: [[#should-be-literal]]
+}}}
+
+=== Section 7: Horizontal Rules ===
+
+Content before line.
+
+---
+
+Content after line. Horizontal rules separate semantic boundaries.
+
+---
+
+Another section continues.
+
+=== Section 8: Complex Inline Formatting ===
+
+This tests **bold with //italic inside// bold** nesting.
+
+And //italic with **bold inside** italic// nesting.
+
+Inline code {{const x = [[variable]]}} can reference things.
+
+Link with **bold**: [[HomePage|**Home Page Bold**]]
+
+Link with //italic//: [[https://example.com|//Visit Example//]]
+
+=== Section 9: Mixed Complex Structures ===
+
+Paragraph with mixed content:
+* [[#tag1]] tag reference
+* [[InternalPage|display text]] with custom label
+* **bold [[#tag2]] in bold**
+* //italic [[ExternalReference]] in italic//
+* inline code {{with [[#notag]] literal}}
+
+== Semantic Layer Tests ==
+
+=== Reference Extraction Tests ===
+
+=== Tag Extraction Tests ===
+
+=== Query Tests ===
+
+After semantic extraction, these queries should work:
+
+**Query 1: Find all tags**
+Expected: 8 TAG nodes
+
+**Query 2: Find backlinks to HomePage**
+Expected: References from section 2 link nodes and section 4 list items
+
+**Query 3: Search tag #important**
+Expected: TAG node + backlinks from 3+ locations
+
+**Query 4: Find all external references**
+Expected: REFERENCE nodes with link_type=external
+
+**Query 5: Find nodes by type LINK**
+Expected: All LINK nodes across sections 2-9
+
+== Edge Cases and Error Handling ==
+
+=== Empty Content ===
+
+* Empty list item text
+* 
+* Item after empty
+
+=== Special Characters ===
+
+Link with special chars: [[Page_Name-123]]
+Tag with underscores: [[#tag_name_long]]
+External URL with query: [[https://example.com?q=test&x=1]]
