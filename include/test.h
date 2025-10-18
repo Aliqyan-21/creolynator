@@ -1,0 +1,4 @@
+class meteor {
+    public:
+  meteor();
+};
