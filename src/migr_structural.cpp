@@ -1,5 +1,6 @@
 #include "migr_structural.h"
 #include "globals.h"
+#include <algorithm>
 #include <error.h>
 #include <memory>
 #include <string>
@@ -613,4 +614,96 @@ bool StructuralLayer::attempt_recovery(const BToken &token) {
     return true;
   }
   return false;
+}
+
+//---------------------//
+//    For debugging    //
+//---------------------//
+
+void StructuralLayer::print_structural_info(bool detailed) const {
+  std::cout << "=== structural info ===" << std::endl;
+  std::cout << "Total Nodes: " << nodes_.size() << std::endl;
+  std::cout << "Root ID: " << (root_ ? root_->id_ : "[no root]") << std::endl;
+
+  // freq of types of nodes
+  std::unordered_map<MIGRNodeType, size_t> counts;
+  for (const auto &[_, node] : nodes_) {
+    if (node) {
+      counts[node->type_]++;
+    }
+  }
+
+  static const std::unordered_map<MIGRNodeType, std::string> type_names = {
+      {MIGRNodeType::DOCUMENT_ROOT, "DOCUMENT_ROOT"},
+      {MIGRNodeType::HEADING, "HEADING"},
+      {MIGRNodeType::PARAGRAPH, "PARAGRAPH"},
+      {MIGRNodeType::ULIST, "ULIST"},
+      {MIGRNodeType::ULIST_ITEM, "ULIST_ITEM"},
+      {MIGRNodeType::OLIST, "OLIST"},
+      {MIGRNodeType::OLIST_ITEM, "OLIST_ITEM"},
+      {MIGRNodeType::LINK, "LINK"},
+      {MIGRNodeType::IMAGE, "IMAGE"},
+      {MIGRNodeType::BOLD, "BOLD"},
+      {MIGRNodeType::ITALIC, "ITALIC"},
+      {MIGRNodeType::TEXT, "TEXT"},
+      {MIGRNodeType::VERBATIM_BLOCK, "VERBATIM_BLOCK"},
+      {MIGRNodeType::VERBATIM_INLINE, "VERBATIM_INLINE"},
+      {MIGRNodeType::HORIZONTAL_RULE, "HORIZONTAL_RULE"},
+      {MIGRNodeType::LINEBREAK, "LINEBREAK"},
+      {MIGRNodeType::NEWLINE, "NEWLINE"}};
+
+  std::cout << "\nNode Type Distribution:" << std::endl;
+  for (const auto &[type, name] : type_names) {
+    if (counts[type] > 0) {
+      std::cout << "  " << name << ": " << counts[type] << std::endl;
+    }
+  }
+
+  if (!detailed || !root_)
+    return;
+
+  std::cout << "\n=== more detailed ===\n--- Document Tree Structure ---"
+            << std::endl;
+
+  std::function<void(const std::shared_ptr<MIGRNode> &, int)> print_tree =
+      [&](const std::shared_ptr<MIGRNode> &node, int depth) {
+        if (!node)
+          return;
+
+        auto type_it = type_names.find(node->type_);
+        std::string type_name =
+            type_it != type_names.end() ? type_it->second : "UNKNOWN";
+
+        std::cout << std::string(depth * 2, ' ') << "└─ " << type_name << " ["
+                  << node->id_ << "]";
+
+        // metadata
+        if (!node->metadata_.empty()) {
+          std::cout << " {";
+          bool first = true;
+          for (const auto &[k, v] : node->metadata_) {
+            std::cout << (first ? "" : ", ") << k << ": \"" << v << "\"";
+            first = false;
+          }
+          std::cout << "}";
+        }
+
+        // content (truncated)
+        if (!node->content_.empty()) {
+          std::string content = node->content_;
+          if (content.length() > 50)
+            content = content.substr(0, 47) + "...";
+          std::replace(content.begin(), content.end(), '\n', ' ');
+          std::cout << " \"" << content << "\"";
+        }
+
+        std::cout << " [children: " << node->children_.size() << "]\n";
+
+        for (const auto &child : node->children_) {
+          print_tree(child, depth + 1);
+        }
+      };
+
+  print_tree(root_, 0);
+  std::cout << std::endl;
 }

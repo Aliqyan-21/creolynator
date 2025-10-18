@@ -40,6 +40,9 @@ public:
   const std::vector<MIGRError> &get_errors();
   void clear_errors();
 
+  /* For debuggin' */
+  void print_structural_info(bool detailed = false) const;
+
 private:
   std::shared_ptr<MIGRNode> root_;
   std::unordered_map<std::string, std::shared_ptr<MIGRNode>>
