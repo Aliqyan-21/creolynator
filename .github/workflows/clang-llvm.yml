@@ -19,3 +19,18 @@ jobs:
         clang-format-version: '16'
         check-path: '.'
         style: 'llvm'
+
+    - name: Show fix instructions on failure
+      if: failure()
+      run: |
+        echo "## Build Failed: Code Formatting Issues" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Your code does not follow the LLVM clang-format style." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "To fix this locally, run:" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+        echo "find . -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name '*.cc' | xargs clang-format -i --style=llvm" >> $GITHUB_STEP_SUMMARY
+        echo "git add ." >> $GITHUB_STEP_SUMMARY
+        echo "git commit -m 'style: format code'" >> $GITHUB_STEP_SUMMARY
+        echo "git push" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
