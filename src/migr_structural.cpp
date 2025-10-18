@@ -1,5 +1,6 @@
 #include "migr_structural.h"
 #include "globals.h"
+#include <algorithm>
 #include <error.h>
 #include <memory>
 #include <string>
@@ -613,4 +614,156 @@ bool StructuralLayer::attempt_recovery(const BToken &token) {
     return true;
   }
   return false;
+}
+
+//---------------------//
+//    For debugging    //
+//---------------------//
+
+void StructuralLayer::print_structural_info(bool detailed) const {
+  std::cout << "=== structural info ===" << std::endl;
+  std::cout << "Total Nodes: " << nodes_.size() << std::endl;
+  std::cout << "Root ID: " << (root_ ? root_->id_ : "[no root]") << std::endl;
+
+  // freq of types of nodes
+  std::unordered_map<MIGRNodeType, size_t> type_counts;
+  for (const auto &[_, node] : nodes_) {
+    if (node) {
+      type_counts[node->type_]++;
+    }
+  }
+
+  std::cout << "\nNode Type Distribution:" << std::endl;
+  std::cout << "  DOCUMENT_ROOT: " << type_counts[MIGRNodeType::DOCUMENT_ROOT]
+            << std::endl;
+  std::cout << "  HEADING: " << type_counts[MIGRNodeType::HEADING] << std::endl;
+  std::cout << "  PARAGRAPH: " << type_counts[MIGRNodeType::PARAGRAPH]
+            << std::endl;
+  std::cout << "  ULIST: " << type_counts[MIGRNodeType::ULIST] << std::endl;
+  std::cout << "  ULIST_ITEM: " << type_counts[MIGRNodeType::ULIST_ITEM]
+            << std::endl;
+  std::cout << "  OLIST: " << type_counts[MIGRNodeType::OLIST] << std::endl;
+  std::cout << "  OLIST_ITEM: " << type_counts[MIGRNodeType::OLIST_ITEM]
+            << std::endl;
+  std::cout << "  LINK: " << type_counts[MIGRNodeType::LINK] << std::endl;
+  std::cout << "  IMAGE: " << type_counts[MIGRNodeType::IMAGE] << std::endl;
+  std::cout << "  BOLD: " << type_counts[MIGRNodeType::BOLD] << std::endl;
+  std::cout << "  ITALIC: " << type_counts[MIGRNodeType::ITALIC] << std::endl;
+  std::cout << "  TEXT: " << type_counts[MIGRNodeType::TEXT] << std::endl;
+  std::cout << "  VERBATIM_BLOCK: " << type_counts[MIGRNodeType::VERBATIM_BLOCK]
+            << std::endl;
+  std::cout << "  VERBATIM_INLINE: "
+            << type_counts[MIGRNodeType::VERBATIM_INLINE] << std::endl;
+  std::cout << "  HORIZONTAL_RULE: "
+            << type_counts[MIGRNodeType::HORIZONTAL_RULE] << std::endl;
+
+  if (!detailed) {
+    return;
+  }
+
+  std::cout << "\n=== more detailed ===" << std::endl;
+
+  std::function<void(const std::shared_ptr<MIGRNode> &, int)> print_tree;
+  print_tree = [&](const std::shared_ptr<MIGRNode> &node, int depth) {
+    if (!node) {
+      return;
+    }
+
+    std::string indent(depth * 2, ' ');
+    std::string type_name;
+
+    switch (node->type_) {
+    case MIGRNodeType::DOCUMENT_ROOT:
+      type_name = "ROOT";
+      break;
+    case MIGRNodeType::HEADING:
+      type_name = "HEADING";
+      break;
+    case MIGRNodeType::PARAGRAPH:
+      type_name = "PARAGRAPH";
+      break;
+    case MIGRNodeType::ULIST:
+      type_name = "ULIST";
+      break;
+    case MIGRNodeType::ULIST_ITEM:
+      type_name = "ULIST_ITEM";
+      break;
+    case MIGRNodeType::OLIST:
+      type_name = "OLIST";
+      break;
+    case MIGRNodeType::OLIST_ITEM:
+      type_name = "OLIST_ITEM";
+      break;
+    case MIGRNodeType::LINK:
+      type_name = "LINK";
+      break;
+    case MIGRNodeType::IMAGE:
+      type_name = "IMAGE";
+      break;
+    case MIGRNodeType::BOLD:
+      type_name = "BOLD";
+      break;
+    case MIGRNodeType::ITALIC:
+      type_name = "ITALIC";
+      break;
+    case MIGRNodeType::TEXT:
+      type_name = "TEXT";
+      break;
+    case MIGRNodeType::VERBATIM_BLOCK:
+      type_name = "VERBATIM_BLOCK";
+      break;
+    case MIGRNodeType::VERBATIM_INLINE:
+      type_name = "VERBATIM_INLINE";
+      break;
+    case MIGRNodeType::HORIZONTAL_RULE:
+      type_name = "HR";
+      break;
+    case MIGRNodeType::LINEBREAK:
+      type_name = "LINEBREAK";
+      break;
+    case MIGRNodeType::NEWLINE:
+      type_name = "NEWLINE";
+      break;
+    default:
+      type_name = "UNKNOWN";
+      break;
+    }
+    std::cout << indent << "└─ " << type_name << " [" << node->id_ << "]";
+
+    if (!node->metadata_.empty()) {
+      std::cout << " {";
+      bool first_meta = true;
+      for (const auto &[key, value] : node->metadata_) {
+        if (!first_meta)
+          std::cout << ", ";
+        first_meta = false;
+        std::cout << key << ": \"" << value << "\"";
+      }
+      std::cout << "}";
+    }
+
+    if (!node->content_.empty()) {
+      std::string content = node->content_;
+      if (content.length() > 50) {
+        content = content.substr(0, 47) + "...";
+      }
+      // replace newlines with spaces for display
+      std::replace(content.begin(), content.end(), '\n', ' ');
+      std::cout << " \"" << content << "\"";
+    }
+    std::cout << " [children: " << node->children_.size() << "]" << std::endl;
+
+    for (const auto &child : node->children_) {
+      print_tree(child, depth + 1);
+    }
+  };
+
+  if (root_) {
+    std::cout << "\n--- Document Tree Structure ---" << std::endl;
+    print_tree(root_, 0);
+  } else {
+    std::cout << "\n[No root node found]" << std::endl;
+  }
+
+  std::cout << std::endl;
 }
