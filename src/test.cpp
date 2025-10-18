@@ -1,5 +1,5 @@
 void print(int n) {
-  if (n==1) {
+  if (n == 1) {
     do_this();
   }
 }
