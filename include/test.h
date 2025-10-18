@@ -1,4 +1,4 @@
 class meteor {
-    public:
+public:
   meteor();
 };
