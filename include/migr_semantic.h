@@ -64,11 +64,6 @@ private:
   std::unordered_map<std::string, std::vector<size_t>>
       incoming_edge_index_; // [node id : edge idx]
 
-  // todo: remove this, as get_semantic_sources() is doing same, and now we have
-  // incomding and outgoing edge index, so this is just redundant
-  std::unordered_map<std::string, std::vector<std::string>>
-      backlink_index_; // [target : sources]
-
   /* Cache for reference nodes and tag nodes */
   std::unordered_map<std::string, std::string>
       reference_cache_;                                    // [target : node_id]
@@ -78,7 +73,6 @@ private:
   void reset();
   void extract_links(std::shared_ptr<MIGRNode> node);
   void extract_tags(std::shared_ptr<MIGRNode> node);
-  void build_backlink_index();
   void build_edge_indexes();
   std::string classify_link_type(const std::string &target) const;
 

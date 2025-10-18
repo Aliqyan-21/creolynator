@@ -54,7 +54,6 @@ void SemanticLayer::remove_node(const std::string &node_id) {
   semantic_nodes_.erase(it);
 
   build_edge_indexes();
-  build_backlink_index();
 }
 
 /*
@@ -163,7 +162,7 @@ void SemanticLayer::extract_semantics(const StructuralLayer &structural) {
 
   extract_links(root);
   extract_tags(root);
-  build_backlink_index();
+  build_edge_indexes();
 
   _V_ << " [SemanticLayer] Extraction complete. Total nodes: "
       << semantic_nodes_.size() << ", Edges: " << edges_.size() << std::endl;
@@ -193,11 +192,12 @@ std::vector<std::shared_ptr<MIGRNode>>
 SemanticLayer::find_backlinks(const std::string &target_id) const {
   std::vector<std::shared_ptr<MIGRNode>> results;
 
-  auto it = backlink_index_.find(target_id);
-  if (it != backlink_index_.end()) {
+  auto it = incoming_edge_index_.find(target_id);
+  if (it != incoming_edge_index_.end()) {
     results.reserve(it->second.size());
-    for (const std::string &src_id : it->second) {
-      auto node_it = semantic_nodes_.find(src_id);
+    for (size_t edge_idx : it->second) {
+      const auto &edge = edges_[edge_idx];
+      auto node_it = semantic_nodes_.find(edge.source_id);
       if (node_it != semantic_nodes_.end()) {
         results.push_back(node_it->second);
       }
@@ -418,7 +418,8 @@ void SemanticLayer::print_semantic_info(bool detailed) const {
 void SemanticLayer::reset() {
   semantic_nodes_.clear();
   edges_.clear();
-  backlink_index_.clear();
+  incoming_edge_index_.clear();
+  outgoing_edge_index_.clear();
   reference_cache_.clear();
   tag_cache_.clear();
 }
@@ -486,17 +487,6 @@ void SemanticLayer::extract_tags(std::shared_ptr<MIGRNode> node) {
   // recursively processing the children
   for (const auto &child : node->children_) {
     extract_tags(child);
-  }
-}
-
-/*
- * Builds backlink index mapping target node ids to source node ids.
- * The created cache enables fast O(1) reverse lookup of backlinks.
- */
-void SemanticLayer::build_backlink_index() {
-  backlink_index_.clear();
-  for (const auto &edge : edges_) {
-    backlink_index_[edge.target_id].push_back(edge.source_id);
   }
 }
 
