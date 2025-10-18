@@ -45,17 +45,6 @@ void MIGRNode::add_child(std::shared_ptr<MIGRNode> child) {
 }
 
 /*
- * Adds a semantic link (reference, node, etc) to another node.
- * Adds the target only if it is not already linked.
- */
-void MIGRNode::add_semantic_link(std::shared_ptr<MIGRNode> target) {
-  if (target && std::find(semantic_links_.begin(), semantic_links_.end(),
-                          target) == semantic_links_.end()) {
-    semantic_links_.push_back(target);
-  }
-}
-
-/*
  * Removes a child node based on its ID.
  * Searches the children list and removes any node matching the given ID.
  */
@@ -95,8 +84,7 @@ void MIGRNode::update_content(const std::string &new_content) {
 
 /*
  * Creates a human-readable string summary for the node.
- * Shows id, type, location, content, counts of children, semantic
- * links, and version.
+ * Shows id, type, location, content, counts of children, and version.
  */
 std::string MIGRNode::to_string() const {
   std::ostringstream oss;
@@ -110,7 +98,6 @@ std::string MIGRNode::to_string() const {
               : content_.substr(0, 50) + (content_.size() > 50 ? "..." : ""))
       << "\n"
       << "children: " << children_.size() << "\n"
-      << "sementic_links: " << semantic_links_.size() << "\n"
       << "version: " << version_ << "\n";
   return oss.str();
 }

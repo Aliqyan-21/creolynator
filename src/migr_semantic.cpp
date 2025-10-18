@@ -40,30 +40,20 @@ void SemanticLayer::remove_node(const std::string &node_id) {
                               }),
                edges_.end());
 
-  // cleaning up semantic links in other nodes
-  for (auto &[id, n] : semantic_nodes_) {
-    if (n) {
-      n->semantic_links_.erase(
-          std::remove_if(n->semantic_links_.begin(), n->semantic_links_.end(),
-                         [&node](const std::shared_ptr<MIGRNode> &link) {
-                           return link && link->id_ == node->id_;
-                         }),
-          n->semantic_links_.end());
-    }
-  }
-
   // cache clean
-  for (auto it{reference_cache_.begin()}; it != reference_cache_.end();) {
-    if (it->second == node_id) {
-      it = reference_cache_.erase(it);
+  for (auto cache_it = reference_cache_.begin();
+       cache_it != reference_cache_.end();) {
+    if (cache_it->second == node_id) {
+      cache_it = reference_cache_.erase(cache_it);
     } else {
-      it++;
+      ++cache_it;
     }
   }
 
   // removing from storage
   semantic_nodes_.erase(it);
 
+  build_edge_indexes();
   build_backlink_index();
 }
 
@@ -188,9 +178,11 @@ void SemanticLayer::add_semantic_edge(const std::shared_ptr<MIGRNode> &source,
                                       const std::shared_ptr<MIGRNode> &target,
                                       MIGREdgeType edge_type,
                                       const std::string &relation_label) {
-  source->add_semantic_link(target);
-
+  size_t edge_idx = edges_.size();
   edges_.push_back({source->id_, target->id_, edge_type, relation_label});
+
+  outgoing_edge_index_[source->id_].push_back(edge_idx);
+  incoming_edge_index_[target->id_].push_back(edge_idx);
 }
 
 /*
@@ -255,6 +247,88 @@ SemanticLayer::find_all_links_to_target(const std::string &target_name) const {
     results.insert(results.end(), bls.begin(), bls.end());
   }
   return results;
+}
+
+//----------------------------//
+//   Edge Query Operations    //
+//----------------------------//
+
+/*
+ * Returns all target nodes that the give source node links to.
+ * Uses outgoing edge index for O(1) lookup
+ */
+std::vector<std::shared_ptr<MIGRNode>>
+SemanticLayer::get_semantic_targets(const std::string &source_id) const {
+  std::vector<std::shared_ptr<MIGRNode>> targets;
+
+  auto it = outgoing_edge_index_.find(source_id);
+  if (it != outgoing_edge_index_.end()) {
+    targets.reserve(it->second.size());
+    for (size_t idx : it->second) {
+      const auto &edge = edges_[idx];
+      auto target_it = semantic_nodes_.find(edge.target_id);
+      if (target_it != semantic_nodes_.end()) {
+        targets.push_back(target_it->second);
+      }
+    }
+  }
+  return targets;
+}
+
+/*
+ * Returns all source nodes that link to given target node.
+ * Uses incoming edge index for O(1) lookup
+ */
+std::vector<std::shared_ptr<MIGRNode>>
+SemanticLayer::get_semantic_sources(const std::string &target_id) const {
+  std::vector<std::shared_ptr<MIGRNode>> sources;
+
+  auto it = incoming_edge_index_.find(target_id);
+  if (it != incoming_edge_index_.end()) {
+    sources.reserve(it->second.size());
+    for (size_t idx : it->second) {
+      const auto &edge = edges_[idx];
+      auto source_it = semantic_nodes_.find(edge.source_id);
+      if (source_it != semantic_nodes_.end()) {
+        sources.push_back(source_it->second);
+      }
+    }
+  }
+  return sources;
+}
+
+/*
+ * Return all edges originating from a given semantic node.
+ */
+std::vector<SemanticEdge>
+SemanticLayer::get_edges_from_node(const std::string &node_id) const {
+  std::vector<SemanticEdge> result;
+
+  auto it = outgoing_edge_index_.find(node_id);
+  if (it != outgoing_edge_index_.end()) {
+    result.reserve(it->second.size());
+    for (size_t idx : it->second) {
+      result.push_back(edges_[idx]);
+    }
+  }
+  return result;
+}
+
+/*
+ * Return all edges going into a given semantic node.
+ */
+std::vector<SemanticEdge>
+SemanticLayer::get_edges_to_node(const std::string &node_id) const {
+  std::vector<SemanticEdge> result;
+
+  auto it = incoming_edge_index_.find(node_id);
+  if (it != incoming_edge_index_.end()) {
+    result.reserve(it->second.size());
+    for (size_t idx : it->second) {
+      result.push_back(edges_[idx]);
+    }
+  }
+  return result;
 }
 
 //-------------------//
@@ -423,6 +497,22 @@ void SemanticLayer::build_backlink_index() {
   backlink_index_.clear();
   for (const auto &edge : edges_) {
     backlink_index_[edge.target_id].push_back(edge.source_id);
+  }
+}
+
+/*
+ * Builds edge indexes mapping node IDs to their outgoing and incoming edge
+ * indices.
+ * Enables O(1) lookup of edges connected to a given node.
+ */
+void SemanticLayer::build_edge_indexes() {
+  outgoing_edge_index_.clear();
+  incoming_edge_index_.clear();
+
+  for (size_t i{0}; i < edges_.size(); ++i) {
+    const auto &edge = edges_[i];
+    outgoing_edge_index_[edge.source_id].push_back(i);
+    incoming_edge_index_[edge.target_id].push_back(i);
   }
 }
 
