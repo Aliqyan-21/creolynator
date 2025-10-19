@@ -1,9 +1,7 @@
 void print(int x) {
-  if(x)
-  {
+  if (x) {
     print(x);
-  }
-  else {
-    print(x+1);
+  } else {
+    print(x + 1);
   }
 }
