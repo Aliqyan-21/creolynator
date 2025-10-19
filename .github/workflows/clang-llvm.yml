@@ -1,36 +1,17 @@
-name: Check Clang-Format
+name: Format-Check
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
-  clang-format-check:
+  format:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/checkout@v4
 
-    - name: Run clang-format check
-      uses: jidicula/clang-format-action@v4.11.0
-      with:
-        clang-format-version: '16'
-        check-path: '.'
-        style: 'llvm'
-
-    - name: Show fix instructions on failure
-      if: failure()
-      run: |
-        echo "## Build Failed: Code Formatting Issues" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Your code does not follow the LLVM clang-format style." >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "To fix this locally, run:" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-        echo "find . -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name '*.cc' | xargs clang-format -i --style=llvm" >> $GITHUB_STEP_SUMMARY
-        echo "git add ." >> $GITHUB_STEP_SUMMARY
-        echo "git commit -m 'style: format code'" >> $GITHUB_STEP_SUMMARY
-        echo "git push" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+      - name: clang-format
+        uses: jidicula/clang-format-action@v4.14.0
+        with:
+          clang-format-version: '15'
