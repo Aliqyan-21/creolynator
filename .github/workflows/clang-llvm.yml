@@ -1,17 +1,20 @@
-name: Format-Check
+name: Check Clang-Format
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
-  format:
+  clang-format-check:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: clang-format
-        uses: jidicula/clang-format-action@v4.14.0
-        with:
-          clang-format-version: '15'
+    - name: Run clang-format check
+      uses: jidicula/clang-format-action@v4.11.0
+      with:
+        clang-format-version: '16'
+        check-path: '.'
