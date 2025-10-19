@@ -3,5 +3,7 @@ void print(int x) {
     print(x);
   } else if (x == 2) {
     print(x + 1);
+  } else {
+    //
   }
 }
