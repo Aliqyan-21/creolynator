@@ -1,5 +1,6 @@
 #include "migr_structural.h"
 #include "globals.h"
+#include "serialization_engine.hpp"
 #include <algorithm>
 #include <error.h>
 #include <memory>
@@ -61,58 +62,29 @@ std::vector<std::shared_ptr<MIGRNode>> StructuralLayer::query_nodes(
 }
 
 /*
- * Serializes the StructuralLayer into a simplified JSON-like format.
+ * Serializes the StructuralLayer into a strong JSON format.
  * Outputs root id, each node’s type, content, metadata, and child
- * relationships. NOTE: Currently uses manual serialization;
- * TODO: replace with a JSON library for robustness.
+ * relationships.
  */
 void StructuralLayer::serialize(std::ostream &out) const {
-  out << "{\n";
-  out << "  \"structural_layer\": {\n";
-  out << "    \"root\": \"" << root_->id_ << "\",\n";
-  out << "      \"nodes\": {\n";
+  rapidjson::StringBuffer buffer;
+  Writer writer(buffer);
 
-  bool first = true;
-  for (const auto &pair : nodes_) {
-    if (!first) {
-      out << ",\n";
-    }
-    first = false;
+  writer.StartObject();
+  writer.Key("structural_layer");
+  writer.StartObject();
 
-    auto node = pair.second;
-    out << "      \"" << node->id_ << "\": {\n";
-    out << "        \"type\": " << static_cast<int>(node->type_) << ",\n";
-    out << "        \"content\": \"" << node->content_ << "\",\n";
+  writer.Key("version");
+  writer.String("1.0");
+  writer.Key("root");
+  writer.String(root_ ? root_->id_.c_str() : "");
 
-    if (!node->metadata_.empty()) {
-      out << "        \"metadata\": {";
-      bool first_meta = true;
-      for (const auto &meta_pair : node->metadata_) {
-        if (!first_meta) {
-          out << ", ";
-        }
-        first_meta = false;
-        out << "\"" << meta_pair.first << "\": \"" << meta_pair.second << "\"";
-      }
-      out << "},\n";
-    }
+  SerialzationEngine::write_nodes(writer, nodes_);
 
-    out << "        \"children\": [";
+  writer.EndObject();
+  writer.EndObject();
 
-    bool first_child = true;
-    for (const auto &child : node->children_) {
-      if (!first_child) {
-        out << ", ";
-      }
-      first_child = false;
-      out << "\"" << child->id_ << "\"";
-    }
-    out << "]\n";
-    out << "      }";
-  }
-  out << "\n    }\n";
-  out << "  }\n";
-  out << "}";
+  out << buffer.GetString();
 }
 
 /*

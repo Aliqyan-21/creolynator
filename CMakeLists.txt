@@ -1,14 +1,13 @@
 cmake_minimum_required(VERSION 3.28.3)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 project(creolynator VERSION 0.0.1 LANGUAGES CXX)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# default build type is -> release
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
@@ -35,28 +34,30 @@ set(HEADERS
     include/migr.h
     include/migr_structural.h
     include/migr_semantic.h
+    include/serialization_engine.h
 )
 
-# Function to add target
-function(add_project_target TARGET_NAME SOURCES HEADERS LIBS)
-    add_executable(${TARGET_NAME} ${SOURCES} ${HEADERS})
-    target_include_directories(${TARGET_NAME} PRIVATE include)
+add_library(RapidJSON INTERFACE)
+target_include_directories(RapidJSON INTERFACE
+    ${CMAKE_SOURCE_DIR}/external/rapidjson
+)
 
-    target_compile_options(${TARGET_NAME} PRIVATE
-        $<$<CONFIG:Debug>:-g -Wall>
-        $<$<CONFIG:Release>:-O3 -Wall>
-    )
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
-    target_link_libraries(${TARGET_NAME} PRIVATE ${LIBS})
+target_include_directories(${PROJECT_NAME} PRIVATE include)
 
-    set_target_properties(${TARGET_NAME} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/bin"
-    )
+# Compiler flags
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:-g -Wall>
+    $<$<CONFIG:Release>:-O3 -Wall>
+)
 
-    message(STATUS "Target '${TARGET_NAME}' configured for ${CMAKE_BUILD_TYPE} build")
-endfunction()
+# header only rapidjson library
+target_link_libraries(${PROJECT_NAME} PRIVATE RapidJSON)
 
-add_project_target(${PROJECT_NAME} "${SOURCES}" "${HEADERS}" "${LINK_LIBRARIES}")
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/bin"
+)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION build/bin)
 

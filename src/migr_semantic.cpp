@@ -1,5 +1,6 @@
 #include "migr_semantic.h"
 #include "globals.h"
+#include "serialization_engine.hpp"
 #include <algorithm>
 #include <memory>
 
@@ -81,49 +82,33 @@ std::vector<std::shared_ptr<MIGRNode>> SemanticLayer::query_nodes(
  * relation details.
  */
 void SemanticLayer::serialize(std::ostream &out) const {
-  out << "{\n";
-  out << "  \"semantic_layer\": {\n";
+  rapidjson::StringBuffer buffer;
+  Writer writer(buffer);
 
-  // nodes
-  out << "    \"semantic_nodes\": {\n";
-  bool first_node = true;
-  for (const auto &[id, node] : semantic_nodes_) {
-    if (!first_node)
-      out << ",\n";
-    first_node = false;
+  writer.StartObject();
+  writer.Key("semantic_layer");
+  writer.StartObject();
 
-    out << "      \"" << id << "\": {\n";
-    out << "        \"type\": " << static_cast<int>(node->type_) << ",\n";
-    out << "        \"content\": \"" << node->content_ << "\",\n";
-    out << "        \"metadata\": {";
+  writer.Key("version");
+  writer.String("1.0");
+  writer.Key("node_count");
+  writer.Uint(semantic_nodes_.size());
+  writer.Key("edge_count");
+  writer.Uint(edges_.size());
 
-    bool first_meta = true;
-    for (const auto &[key, value] : node->metadata_) {
-      if (!first_meta)
-        out << ", ";
-      first_meta = false;
-      out << "\"" << key << "\": \"" << value << "\"";
-    }
-    out << "}\n";
-    out << "      }";
-  }
-  out << "\n    },\n";
+  SerialzationEngine::write_nodes(writer, semantic_nodes_);
+  SerialzationEngine::write_edges(writer, edges_);
+  SerialzationEngine::write_index(writer, "outgoing_index",
+                                  outgoing_edge_index_);
+  SerialzationEngine::write_index(writer, "incoming_index",
+                                  incoming_edge_index_);
+  SerialzationEngine::write_map(writer, "ref_cache", reference_cache_);
+  SerialzationEngine::write_map(writer, "tag_cache", tag_cache_);
 
-  // and edges
-  out << "    \"edges\": [\n";
-  bool first_edge = true;
-  for (const auto &edge : edges_) {
-    if (!first_edge)
-      out << ",\n";
-    first_edge = false;
+  writer.EndObject();
+  writer.EndObject();
 
-    out << "      {\"source\": \"" << edge.source_id << "\", \"target\": \""
-        << edge.target_id << "\", \"type\": \"" << edge.relation_label
-        << "\", \"edge_type\": " << static_cast<int>(edge.edge_type) << "}";
-  }
-  out << "\n    ]\n";
-  out << "  }\n";
-  out << "}\n";
+  out << buffer.GetString();
 }
 
 /*
