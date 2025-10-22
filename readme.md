@@ -44,7 +44,7 @@ make
 
 > **Two files will also be created**
 > In `tests` directory: 
-> - structural.txt
-> - semantic.txt
+> - structural.json
+> - semantic.json
 
 ---
