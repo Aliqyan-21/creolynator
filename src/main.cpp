@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     blexer.b_tokenize();
     StructuralLayer ll;
     ll.build_from_tokens(blexer.get_tokens());
-    std::ofstream sl_out("tests/structural.txt");
+    std::ofstream sl_out("tests/structural.json");
 
     ll.print_structural_info(true);
 
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     // Use the built-in debug function
     sm.print_semantic_info(true);
 
-    std::ofstream sm_out("tests/semantic.txt");
+    std::ofstream sm_out("tests/semantic.json");
     sm.serialize(sm_out);
   } catch (const CNError &e) {
     std::cout << e.format() << std::endl;
