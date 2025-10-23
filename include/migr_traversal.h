@@ -47,6 +47,16 @@ public:
 
 private:
   MIGRGraphLayer &layer_;
+
+  /* Internal traversal engines */
+  std::vector<std::shared_ptr<MIGRNode>>
+  dfs_collect(const std::vector<std::shared_ptr<MIGRNode>> &starts,
+              std::function<bool(const MIGRNode &)> predicate, int max_depth,
+              TraversalDirection direction) const;
+
+  std::vector<std::shared_ptr<MIGRNode>>
+  get_neighbours(const std::shared_ptr<MIGRNode> &node,
+                 TraversalDirection direction) const;
 };
 
 #endif //! MIGR_TRAVERSAL_H
