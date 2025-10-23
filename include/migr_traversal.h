@@ -54,6 +54,10 @@ private:
               std::function<bool(const MIGRNode &)> predicate, int max_depth,
               TraversalDirection direction) const;
 
+  bool dfs_visit(const std::vector<std::shared_ptr<MIGRNode>> &starts,
+                 std::function<bool(std::shared_ptr<MIGRNode>, int depth)> visitor, int max_depth,
+                 TraversalDirection direction) const;
+
   std::vector<std::shared_ptr<MIGRNode>>
   get_neighbours(const std::shared_ptr<MIGRNode> &node,
                  TraversalDirection direction) const;

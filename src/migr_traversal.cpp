@@ -6,8 +6,12 @@ MIGRTraversal::MIGRTraversal(MIGRGraphLayer &layer) : layer_(layer) {
   _V_ << " [MIGRTraversal] Traversal Interface Initialized." << std::endl;
 }
 
+//-----------------------------------//
+//    Internal Traversal Engines     //
+//-----------------------------------//
+
 /*
- * Iterative dfs engine for collect
+ * Iterative DFS engine for collect
  */
 std::vector<std::shared_ptr<MIGRNode>>
 MIGRTraversal::dfs_collect(const std::vector<std::shared_ptr<MIGRNode>> &starts,
@@ -53,6 +57,53 @@ MIGRTraversal::dfs_collect(const std::vector<std::shared_ptr<MIGRNode>> &starts,
   _V_ << " [MIGRTraversal] DFS collected " << results.size() << " nodes"
       << std::endl;
   return results;
+}
+
+/*
+ * Iterative DFS engine for visit
+ */
+bool MIGRTraversal::dfs_visit(
+    const std::vector<std::shared_ptr<MIGRNode>> &starts,
+    std::function<bool(std::shared_ptr<MIGRNode>, int depth)> visitor,
+    int max_depth, TraversalDirection direction) const {
+  std::unordered_set<std::string> visited;
+  std::stack<std::pair<std::shared_ptr<MIGRNode>, int>> st;
+
+  for (const auto &start : starts) {
+    if (start) {
+      st.push({start, 0});
+    }
+  }
+
+  while (!st.empty()) {
+    auto [node, depth] = st.top();
+    st.pop();
+
+    if (!node || visited.count(node->id_)) {
+      continue;
+    }
+
+    if (max_depth >= 0 && depth > max_depth) {
+      continue;
+    }
+
+    visited.insert(node->id_);
+
+    if (!visitor(node, depth)) {
+      _V_ << " [MIGRTraversal] DFS visit terminated early by visitor"
+          << std::endl;
+      return false;
+    }
+
+    auto neighbours = get_neighbours(node, direction);
+    for (auto it = neighbours.rbegin(); it != neighbours.rend(); ++it) {
+      if (*it && !visited.count((*it)->id_)) {
+        st.push({*it, depth + 1});
+      }
+    }
+  }
+
+  return true;
 }
 
 std::vector<std::shared_ptr<MIGRNode>>
