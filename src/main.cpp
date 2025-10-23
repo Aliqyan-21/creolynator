@@ -27,6 +27,17 @@ int main(int argc, char *argv[]) {
 
     std::ofstream sm_out("tests/semantic.json");
     sm.serialize(sm_out);
+
+    std::cout
+        << "======= output after deserializing data from generated json ======"
+        << std::endl;
+
+    std::ifstream sl_in("tests/structural.json");
+    std::ifstream sm_in("tests/semantic.json");
+    ll.deserialize(sl_in);
+    sm.deserialize(sm_in);
+    ll.print_structural_info(true);
+    sm.print_semantic_info(true);
   } catch (const CNError &e) {
     std::cout << e.format() << std::endl;
   }
