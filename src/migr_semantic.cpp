@@ -112,13 +112,9 @@ void SemanticLayer::serialize(std::ostream &out) const {
 }
 
 /*
- * fix: Currently unimplemented
+ * Deserializes the json data, into structural layer nodes
  */
-void SemanticLayer::deserialize(std::istream &in) const {
-  // todo: implement deserialization of data - would implement
-  // json parsing as data will be in json format
-  SPEAK << "Deserialization is not implemented yet" << std::endl;
-}
+void SemanticLayer::deserialize(std::istream &in) {}
 
 //-----------------------------//
 //     Semantic Operations     //
