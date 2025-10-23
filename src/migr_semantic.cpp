@@ -78,6 +78,14 @@ std::vector<std::shared_ptr<MIGRNode>> SemanticLayer::query_nodes(
 }
 
 /*
+ * Helper function to get all neighbours of a node
+ */
+std::vector<std::shared_ptr<MIGRNode>>
+SemanticLayer::get_neighbours(const std::string &node_id) const {
+  return get_semantic_targets(node_id);
+}
+
+/*
  * Serializes semantic_nodes and edges into JSON-like format.
  * Includes node ids, types, contents, metadata, and edge source/target and
  * relation details.

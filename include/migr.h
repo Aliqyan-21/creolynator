@@ -92,6 +92,8 @@ public:
   virtual void remove_node(const std::string &node_id) = 0;
   virtual std::vector<std::shared_ptr<MIGRNode>>
   query_nodes(std::function<bool(const MIGRNode &)> predicate) const = 0;
+  virtual std::vector<std::shared_ptr<MIGRNode>>
+  get_neighbours(const std::string &node_id) const = 0;
   virtual void serialize(std::ostream &out) const = 0;
   virtual void deserialize(std::istream &in) = 0;
 };

@@ -63,6 +63,16 @@ std::vector<std::shared_ptr<MIGRNode>> StructuralLayer::query_nodes(
 }
 
 /*
+ * Helper function to get all neighbours of a node
+ */
+std::vector<std::shared_ptr<MIGRNode>>
+StructuralLayer::get_neighbours(const std::string &node_id) const {
+  auto it = nodes_.find(node_id);
+  return it != nodes_.end() ? it->second->children_
+                            : std::vector<std::shared_ptr<MIGRNode>>{};
+}
+
+/*
  * Serializes the StructuralLayer into a strong JSON format.
  * Outputs root id, each node’s type, content, metadata, and child
  * relationships.

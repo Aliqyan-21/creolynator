@@ -28,6 +28,8 @@ public:
   void remove_node(const std::string &node_id) override;
   std::vector<std::shared_ptr<MIGRNode>>
   query_nodes(std::function<bool(const MIGRNode &)> predicate) const override;
+  virtual std::vector<std::shared_ptr<MIGRNode>>
+  get_neighbours(const std::string &node_id) const override;
   void serialize(std::ostream &out) const override;
   void deserialize(std::istream &in) override;
 
