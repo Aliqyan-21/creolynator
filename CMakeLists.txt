@@ -34,7 +34,8 @@ set(HEADERS
     include/migr.h
     include/migr_structural.h
     include/migr_semantic.h
-    include/serialization_engine.h
+    include/serialization_engine.hpp
+    include/deserialization_engine.hpp
 )
 
 add_library(RapidJSON INTERFACE)
