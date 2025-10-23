@@ -18,3 +18,4 @@ jobs:
       with:
         clang-format-version: '16'
         check-path: '.'
+        exclude-regex: 'external/'
