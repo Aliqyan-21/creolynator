@@ -48,15 +48,24 @@ public:
 private:
   MIGRGraphLayer &layer_;
 
-  /* Internal traversal engines */
+  /* Internal Traversal Engines */
   std::vector<std::shared_ptr<MIGRNode>>
   dfs_collect(const std::vector<std::shared_ptr<MIGRNode>> &starts,
               std::function<bool(const MIGRNode &)> predicate, int max_depth,
               TraversalDirection direction) const;
 
-  bool dfs_visit(const std::vector<std::shared_ptr<MIGRNode>> &starts,
-                 std::function<bool(std::shared_ptr<MIGRNode>, int depth)> visitor, int max_depth,
-                 TraversalDirection direction) const;
+  bool
+  dfs_visit(const std::vector<std::shared_ptr<MIGRNode>> &starts,
+            std::function<bool(std::shared_ptr<MIGRNode>, int depth)> visitor,
+            int max_depth, TraversalDirection direction) const;
+
+  /* Internal Transform Engine */
+  std::vector<std::shared_ptr<MIGRNode>> dfs_transform(
+      const std::vector<std::shared_ptr<MIGRNode>> &starts,
+      std::function<std::shared_ptr<MIGRNode>(std::shared_ptr<MIGRNode>,
+                                              int depth)>
+          transformer,
+      int max_depth, TraversalDirection direction) const;
 
   std::vector<std::shared_ptr<MIGRNode>>
   get_neighbours(const std::shared_ptr<MIGRNode> &node,

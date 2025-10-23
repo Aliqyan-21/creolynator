@@ -106,6 +106,59 @@ bool MIGRTraversal::dfs_visit(
   return true;
 }
 
+//-----------------------------//
+//  Internal Transform Engine  //
+//-----------------------------//
+
+/*
+ * Iterative DFS engine for transform
+ */
+std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::dfs_transform(
+    const std::vector<std::shared_ptr<MIGRNode>> &starts,
+    std::function<std::shared_ptr<MIGRNode>(std::shared_ptr<MIGRNode>,
+                                            int depth)>
+        transformer,
+    int max_depth, TraversalDirection direction) const {
+  std::vector<std::shared_ptr<MIGRNode>> results;
+  std::unordered_set<std::string> visited;
+  std::stack<std::pair<std::shared_ptr<MIGRNode>, int>> st;
+
+  for (const auto &start : starts) {
+    if (start) {
+      st.push({start, 0});
+    }
+  }
+
+  while (!st.empty()) {
+    auto [node, depth] = st.top();
+    st.pop();
+
+    if (!node || visited.count(node->id_)) {
+      continue;
+    }
+
+    if (max_depth >= 0 && depth > max_depth) {
+      continue;
+    }
+
+    visited.insert(node->id_);
+
+    auto transformed = transformer(node, depth);
+    if (transformed) {
+      results.push_back(transformed);
+    }
+    auto neighbors = get_neighbours(node, direction);
+    for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it) {
+      if (*it && !visited.count((*it)->id_)) {
+        st.push({*it, depth + 1});
+      }
+    }
+  }
+  _V_ << " [MIGRTraversal] DFS transformed " << results.size() << " nodes"
+      << std::endl;
+  return results;
+}
+
 std::vector<std::shared_ptr<MIGRNode>>
 MIGRTraversal::get_neighbours(const std::shared_ptr<MIGRNode> &node,
                               TraversalDirection direction) const {
