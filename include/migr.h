@@ -93,7 +93,7 @@ public:
   virtual std::vector<std::shared_ptr<MIGRNode>>
   query_nodes(std::function<bool(const MIGRNode &)> predicate) const = 0;
   virtual void serialize(std::ostream &out) const = 0;
-  virtual void deserialize(std::istream &in) const = 0;
+  virtual void deserialize(std::istream &in) = 0;
 };
 
 #endif //! MIGR_H

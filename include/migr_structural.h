@@ -29,7 +29,7 @@ public:
   std::vector<std::shared_ptr<MIGRNode>>
   query_nodes(std::function<bool(const MIGRNode &)> predicate) const override;
   void serialize(std::ostream &out) const override;
-  void deserialize(std::istream &in) const override;
+  void deserialize(std::istream &in) override;
 
   /* core functionality */
   void build_from_tokens(const std::vector<BToken> &tokens);

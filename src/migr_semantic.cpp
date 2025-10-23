@@ -1,4 +1,5 @@
 #include "migr_semantic.h"
+#include "deserialization_engine.hpp"
 #include "globals.h"
 #include "serialization_engine.hpp"
 #include <algorithm>
@@ -112,12 +113,37 @@ void SemanticLayer::serialize(std::ostream &out) const {
 }
 
 /*
- * fix: Currently unimplemented
+ * Deserializes the json data, into structural layer nodes
  */
-void SemanticLayer::deserialize(std::istream &in) const {
-  // todo: implement deserialization of data - would implement
-  // json parsing as data will be in json format
-  SPEAK << "Deserialization is not implemented yet" << std::endl;
+void SemanticLayer::deserialize(std::istream &in) {
+  std::string json_data((std::istreambuf_iterator<char>(in)),
+                        std::istreambuf_iterator<char>());
+
+  Document doc;
+  doc.Parse(json_data.c_str());
+
+  if (doc.HasParseError()) {
+    SPEAK << "JSON parse error at offset " << doc.GetErrorOffset() << std::endl;
+    return;
+  }
+
+  if (!doc.HasMember("semantic_layer")) {
+    SPEAK << "Invalid JSON: missing 'structural_layer'" << std::endl;
+    return;
+  }
+
+  const auto &layer = doc["semantic_layer"];
+
+  semantic_nodes_ = DeserializationEngine::read_nodes(layer);
+  edges_ = DeserializationEngine::read_edges<SemanticEdge>(layer);
+
+  outgoing_edge_index_ =
+      DeserializationEngine::read_index(layer, "outgoing_index");
+  incoming_edge_index_ =
+      DeserializationEngine::read_index(layer, "incoming_index");
+
+  reference_cache_ = DeserializationEngine::read_map(layer, "ref_cache");
+  tag_cache_ = DeserializationEngine::read_map(layer, "tag_cache");
 }
 
 //-----------------------------//

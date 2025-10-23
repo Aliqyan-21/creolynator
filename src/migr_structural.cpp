@@ -1,4 +1,5 @@
 #include "migr_structural.h"
+#include "deserialization_engine.hpp"
 #include "globals.h"
 #include "serialization_engine.hpp"
 #include <algorithm>
@@ -88,12 +89,35 @@ void StructuralLayer::serialize(std::ostream &out) const {
 }
 
 /*
- * fix: Currently unimplemented.
+ * Deserializes the json data, into structural layer nodes
  */
-void StructuralLayer::deserialize(std::istream &in) const {
-  // todo: implement deserialization of data - would implement
-  // json parsing as data will be in json format
-  SPEAK << "Deserialization is not implemented yet" << std::endl;
+void StructuralLayer::deserialize(std::istream &in) {
+  std::string json_data((std::istreambuf_iterator<char>(in)),
+                        std::istreambuf_iterator<char>());
+
+  Document doc;
+  doc.Parse(json_data.c_str());
+
+  if (doc.HasParseError()) {
+    SPEAK << "JSON parse error at offset " << doc.GetErrorOffset() << std::endl;
+    return;
+  }
+
+  if (!doc.HasMember("structural_layer")) {
+    SPEAK << "Invalid JSON: missing 'structural_layer'" << std::endl;
+    return;
+  }
+
+  const auto &layer = doc["structural_layer"];
+
+  nodes_ = DeserializationEngine::read_nodes(layer);
+
+  DeserializationEngine::build_hieratchy(layer, nodes_);
+
+  if (layer.HasMember("root")) {
+    std::string root_id = layer["root"].GetString();
+    root_ = nodes_[root_id];
+  }
 }
 
 /*
