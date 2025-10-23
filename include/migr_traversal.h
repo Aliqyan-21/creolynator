@@ -57,6 +57,12 @@ private:
   std::vector<std::shared_ptr<MIGRNode>>
   get_neighbours(const std::shared_ptr<MIGRNode> &node,
                  TraversalDirection direction) const;
+
+  std::vector<std::shared_ptr<MIGRNode>>
+  get_forward_neighbours(const std::shared_ptr<MIGRNode> &node) const;
+
+  std::vector<std::shared_ptr<MIGRNode>>
+  get_backward_neighbours(const std::shared_ptr<MIGRNode> &node) const;
 };
 
 #endif //! MIGR_TRAVERSAL_H

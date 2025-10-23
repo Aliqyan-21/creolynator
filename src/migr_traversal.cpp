@@ -58,5 +58,47 @@ MIGRTraversal::dfs_collect(const std::vector<std::shared_ptr<MIGRNode>> &starts,
 std::vector<std::shared_ptr<MIGRNode>>
 MIGRTraversal::get_neighbours(const std::shared_ptr<MIGRNode> &node,
                               TraversalDirection direction) const {
-  // TODO: implement
+  if (!node) {
+    return {};
+  }
+
+  if (direction == TraversalDirection::FORWARD) {
+    return get_forward_neighbours(node);
+  } else if (direction == TraversalDirection::BACKWARD) {
+    return get_backward_neighbours(node);
+  } else {
+    // both..,
+    auto forward = get_forward_neighbours(node);
+    auto backward = get_backward_neighbours(node);
+    forward.insert(forward.end(), backward.begin(), backward.end());
+    return forward;
+  }
+}
+
+std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::get_forward_neighbours(
+    const std::shared_ptr<MIGRNode> &node) const {
+  /* seeing if semantic layer */
+  if (SemanticLayer *semantic = dynamic_cast<SemanticLayer *>(&layer_)) {
+    return semantic->get_semantic_targets(node->id_);
+  }
+
+  /* otherwise return structural children */
+  return node->children_;
+}
+
+std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::get_backward_neighbours(
+    const std::shared_ptr<MIGRNode> &node) const {
+  std::vector<std::shared_ptr<MIGRNode>> neighbours;
+
+  /* seeing if semantic layer */
+  if (SemanticLayer *semantic = dynamic_cast<SemanticLayer *>(&layer_)) {
+    return semantic->get_semantic_sources(node->id_);
+  }
+
+  /* if structural get parent if there */
+  if (auto parent = node->parent_.lock()) {
+    neighbours.push_back(parent);
+  }
+
+  return neighbours;
 }
