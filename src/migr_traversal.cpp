@@ -187,7 +187,43 @@ bool MIGRTraversal::bfs_visit(
     const std::vector<std::shared_ptr<MIGRNode>> &starts,
     std::function<bool(std::shared_ptr<MIGRNode>, int depth)> visitor,
     int max_depth, TraversalDirection direction) const {
-  // TODO: implement
+  std::unordered_set<std::string> visited;
+  std::queue<std::pair<std::shared_ptr<MIGRNode>, int>> qu;
+
+  for (const auto &start : starts) {
+    if (start) {
+      qu.push({start, 0});
+    }
+  }
+
+  while (!qu.empty()) {
+    auto [node, depth] = qu.front();
+    qu.pop();
+
+    if (!node || visited.count(node->id_)) {
+      continue;
+    }
+
+    if (max_depth >= 0 && depth > max_depth) {
+      continue;
+    }
+
+    visited.insert(node->id_);
+
+    if (!visitor(node, depth)) {
+      _V_ << " [MIGRTraversal] BFS visit terminated early by visitor"
+          << std::endl;
+      return false;
+    }
+
+    auto neighbours = get_neighbours(node, direction);
+    for (const auto &neighbour : neighbours) {
+      if (neighbour && !visited.count(neighbour->id_)) {
+        qu.push({neighbour, depth + 1});
+      }
+    }
+  }
+  return true;
 }
 
 //-----------------------------//
@@ -250,10 +286,10 @@ std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::dfs_transform(
 }
 
 /*
- * Performs a breadth-first search (BFS) traversal and applies the transformation
- * function to each visited node. The transformer function receives the
- * current node and depth, and returns a possibly transformed node according to
- * the tranformer function to be include in results vector.
+ * Performs a breadth-first search (BFS) traversal and applies the
+ * transformation function to each visited node. The transformer function
+ * receives the current node and depth, and returns a possibly transformed node
+ * according to the tranformer function to be include in results vector.
  *
  * traversal respects max depth and direction. Transformed
  * nodes are collected into a result vector.
