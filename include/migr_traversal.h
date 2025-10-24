@@ -67,6 +67,7 @@ private:
           transformer,
       int max_depth, TraversalDirection direction) const;
 
+  /* Neighbour Helpers */
   std::vector<std::shared_ptr<MIGRNode>>
   get_neighbours(const std::shared_ptr<MIGRNode> &node,
                  TraversalDirection direction) const;

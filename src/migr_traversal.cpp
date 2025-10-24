@@ -11,7 +11,14 @@ MIGRTraversal::MIGRTraversal(MIGRGraphLayer &layer) : layer_(layer) {
 //-----------------------------------//
 
 /*
- * Iterative DFS engine for collect
+ * Performs a depth-first search (DFS) to collect nodes starting from the
+ * given start nodes.
+ * Nodes are visited iteratively using a stack.
+ * The traversal respects a max depth and traversal
+ * direction (forward, backward, or bidirectional).
+ *
+ * Each visited node is tested against the provided predicate function; if
+ * the predicate returns true, the node is added to result vector.
  */
 std::vector<std::shared_ptr<MIGRNode>>
 MIGRTraversal::dfs_collect(const std::vector<std::shared_ptr<MIGRNode>> &starts,
@@ -60,7 +67,13 @@ MIGRTraversal::dfs_collect(const std::vector<std::shared_ptr<MIGRNode>> &starts,
 }
 
 /*
- * Iterative DFS engine for visit
+ * Performs an iterative depth-first search (DFS) traversal to visit nodes
+ * according to the visitor function Starting from the provided nodes and
+ * max depth.
+ *
+ * If visitor returns false at some point, then it's early termination and it
+ * returns false in that case, otherwise if traversal completes then returns
+ * true.
  */
 bool MIGRTraversal::dfs_visit(
     const std::vector<std::shared_ptr<MIGRNode>> &starts,
@@ -111,7 +124,13 @@ bool MIGRTraversal::dfs_visit(
 //-----------------------------//
 
 /*
- * Iterative DFS engine for transform
+ * Performs a depth-first search (DFS) traversal and applies the transformation
+ * function to each visited node. The transformer function receives the
+ * current node and depth, and returns a possibly transformed node according to
+ * the tranformer function to be include in results vector.
+ *
+ * traversal respects max depth and direction. Transformed
+ * nodes are collected into a result vector.
  */
 std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::dfs_transform(
     const std::vector<std::shared_ptr<MIGRNode>> &starts,
@@ -159,6 +178,14 @@ std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::dfs_transform(
   return results;
 }
 
+//----------------------//
+//   Neighbour Helpers  //
+//----------------------//
+
+/*
+ * Returns neighbors of a node based on the specified traversal direction.
+ * (forward, backward, or bidirectional)
+ */
 std::vector<std::shared_ptr<MIGRNode>>
 MIGRTraversal::get_neighbours(const std::shared_ptr<MIGRNode> &node,
                               TraversalDirection direction) const {
@@ -179,6 +206,11 @@ MIGRTraversal::get_neighbours(const std::shared_ptr<MIGRNode> &node,
   }
 }
 
+/*
+ * Gets forward neighbors of a node.
+ * - for semantic layers, returns outgoing semantic targets.
+ * - for structural layers, returns children nodes.
+ */
 std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::get_forward_neighbours(
     const std::shared_ptr<MIGRNode> &node) const {
   /* seeing if semantic layer */
@@ -190,6 +222,11 @@ std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::get_forward_neighbours(
   return node->children_;
 }
 
+/*
+ * Gets backward neighbors of a node.
+ * - for semantic layers, returns incoming semantic sources.
+ * - for structural layers, returns the parent node if present.
+ */
 std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::get_backward_neighbours(
     const std::shared_ptr<MIGRNode> &node) const {
   std::vector<std::shared_ptr<MIGRNode>> neighbours;
