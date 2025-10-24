@@ -300,7 +300,45 @@ std::vector<std::shared_ptr<MIGRNode>> MIGRTraversal::bfs_transform(
                                             int depth)>
         transformer,
     int max_depth, TraversalDirection direction) const {
-  // TODO: implement
+  std::vector<std::shared_ptr<MIGRNode>> results;
+  std::unordered_set<std::string> visited;
+  std::queue<std::pair<std::shared_ptr<MIGRNode>, int>> qu;
+
+  for (const auto &start : starts) {
+    if (start) {
+      qu.push({start, 0});
+    }
+  }
+
+  while (!qu.empty()) {
+    auto [node, depth] = qu.front();
+    qu.pop();
+
+    if (!node || visited.count(node->id_)) {
+      continue;
+    }
+
+    if (max_depth >= 0 && depth > max_depth) {
+      continue;
+    }
+
+    visited.insert(node->id_);
+
+    auto transformed = transformer(node, depth);
+    if (transformed) {
+      results.push_back(transformed);
+    }
+
+    auto neighbours = get_neighbours(node, direction);
+    for (const auto &neighbour : neighbours) {
+      if (neighbour && !visited.count(neighbour->id_)) {
+        qu.push({neighbour, depth + 1});
+      }
+    }
+  }
+  _V_ << " [MIGRTraversal] BFS transformed " << results.size() << " nodes"
+      << std::endl;
+  return results;
 }
 
 //----------------------//
